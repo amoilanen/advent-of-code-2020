@@ -13,8 +13,6 @@
 ")
 
 (define tree '#\#)
-(define step-right 3)
-(define step-down 1)
 
 ; Utility functions
 (define (split-list-by l el)
@@ -82,27 +80,49 @@
 )
 
 ;Traversal of the matrix
-(define (travel matrix step-right step-down)
+(define (route-to-bottom matrix step-right step-down)
   (define (descend-and-record-route row-idx column-idx recorded-route)
     (if (<= (matrix 'row-number) row-idx) (reverse recorded-route) ; descended to the bottom
-      (let ((current-route-cell ((matrix 'element-at) row-idx column-idx))
-            (next-row-idx (+ row-idx step-down))
-            (next-column-idx (modulo (+ column-idx step-right) (matrix 'column-number))))
-        (descend-and-record-route next-row-idx next-column-idx (cons current-route-cell recorded-route)))))
+      (let ((current-route-cell
+              ((matrix 'element-at) row-idx column-idx))
+            (next-row-idx
+              (+ row-idx step-down))
+            (next-column-idx
+              (modulo
+                (+ column-idx step-right)
+                (matrix 'column-number))))
+        (descend-and-record-route
+          next-row-idx
+          next-column-idx
+          (cons current-route-cell recorded-route)))))
   (descend-and-record-route 0 0 '()))
 
-(define parsed-matrix
+(define matrix
   (parse-matrix
     (string->list input-data)))
 
-(define traveled-route
-  (travel parsed-matrix step-right step-down))
-
-(define encountered-trees-number
-  (element-occurences-count tree traveled-route))
-
-(newline)
-(display traveled-route)
+(define (trees-number-in-route-with-slope matrix step-right step-down)
+  (element-occurences-count
+    tree
+    (route-to-bottom matrix step-right step-down)))
 
 (newline)
-(display encountered-trees-number)
+(display "Part 1:")
+(newline)
+
+(define step-right 3)
+(define step-down 1)
+(display (trees-number-in-route-with-slope matrix step-right step-down))
+
+(newline)
+(display "Part 2:")
+(newline)
+
+(define slopes
+  (list (list 1 1) (list 3 1) (list 5 1) (list 7 1) (list 1 2)))
+(define tree-numbers
+  (map
+    (lambda (slope)
+      (apply trees-number-in-route-with-slope (cons matrix slope)))
+      slopes))
+(display (apply * tree-numbers))
