@@ -25,6 +25,19 @@ iyr:2011 ecl:brn hgt:59in
             (split (cdr l) el (cons (car l) splitted-part) already-splitted))))
   (reverse (split l el '() '())))
 
+(define (some? predicate l)
+  (not
+    (every?
+      (lambda (x)
+        (not
+          (predicate x)))
+      l)))
+
+(define (every? predicate l)
+  (cond ((null? l) #t)
+        ((not (predicate (car l))) #f)
+        (else (every? predicate (cdr l)))))
+
 ; Parser
 (define (parse-passports input)
   (let ((passport-inputs (split-list-by (split-list-by input '#\newline) '())))
@@ -44,7 +57,9 @@ iyr:2011 ecl:brn hgt:59in
 
 (define (parse-passport-field passport-field-input)
   (let ((parts (split-list-by passport-field-input '#\:)))
-    (make-passport-field (car parts) (cadr parts))))
+    (make-passport-field
+      (list->string (car parts))
+      (list->string (cadr parts)))))
 
 ; Passport definition
 (define (make-passport-field name value)
@@ -57,21 +72,50 @@ iyr:2011 ecl:brn hgt:59in
 )
 
 (define (make-passport passport-fields)
-  (define is-valid
-    #t ;TODO: Implement
-  )
+  (define required-field-names (list 'byr 'iyr 'eyr 'hgt 'hcl 'ecl 'pid))
+  (define (has-field field-name)
+    (some?
+      (lambda (field)
+        (equal? (field 'name) (symbol->string field-name)))
+      passport-fields))
+  (define (is-valid)
+    (every?
+      has-field
+      required-field-names))
   (define as-list
     (map
       (lambda (f) (f 'as-list))
       passport-fields))
   (define (dispatch op)
     (cond ((eq? op 'is-valid) is-valid)
+          ((eq? op 'has-field) has-field)
           ((eq? op 'as-list) as-list)
           (else (error "Unsupported password-field op:" op))))
   dispatch
 )
 
+(define passports
+  (parse-passports
+    (string->list input-data)))
+
+(define passport-validity
+  (map
+    (lambda (p) ((p 'is-valid)))
+    passports))
+
+(define valid-passports-number
+  (length
+    (filter
+      (lambda (x) x)
+      passport-validity)))
+
 (newline)
-(display
-  ((caddr (parse-passports
-    (string->list input-data))) 'as-list))
+(display "Part 1:")
+(newline)
+(display valid-passports-number)
+(newline)
+
+; car - valid (all fields)
+; cadr - invalid (missing hgt)
+; caddr - valid (missing cid)
+; cadddr - invalid (missing cid, byr)
