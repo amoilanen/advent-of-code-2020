@@ -16,6 +16,37 @@ dotted black bags contain no other bags.
 (define (contains? el list)
   (not (eq? false (member el list))))
 
+(define (omit-duplicates l)
+  (cond ((null? l) '())
+        ((contains? (car l) (cdr l))
+          (omit-duplicates (cdr l)))
+        (else
+          (cons
+            (car l)
+            (omit-duplicates (cdr l))))))
+
+(define (every? predicate l)
+  (cond ((null? l) #t)
+        ((not (predicate (car l))) #f)
+        (else (every? predicate (cdr l)))))
+
+(define (some? predicate l)
+  (not
+    (every?
+      (lambda (x)
+        (not
+          (predicate x)))
+      l)))
+
+(define (have-intersection? first second)
+  (some?
+    (lambda (f) (contains? f second))
+    first))
+
+; Set operations
+(define (union . lists)
+  (omit-duplicates (apply append lists)))
+
 (define (split-list-by-list l splitters)
   (define (split l splitted-part already-splitted)
     (cond ((null? l)
@@ -87,7 +118,7 @@ dotted black bags contain no other bags.
   (let ((parts (split-list-by input "contain")))
     (let ((left (car parts))
           (right (cadr parts)))
-      (list
+      (make-rule
         (parse-rule-left-side left)
         (parse-rule-right-side right)))))
 
@@ -108,12 +139,59 @@ dotted black bags contain no other bags.
     (join-strings-with "_" (cdr input))))
 
 ; rule representation
+(define (make-rule left right)
+  (define bag-colors
+    (map
+      (lambda (c) (cadr c))
+      right))
+  (define bag-count
+    (apply +
+      (map
+        (lambda (c) (car c))
+        right)))
+  (define (dispatch op)
+    (cond ((eq? op 'own-color) left)
+          ((eq? op 'bag-colors) bag-colors)
+          ((eq? op 'bag-count) bag-count)
+          ((eq? op 'as-list) (list left right))
+          (else (error "Unsupported rule op:" op))))
+  dispatch
+)
 
 ; Solution
+(define (bag-colors-containing-transitively rules bag-colors-to-contain)
+  (define (bag-colors-containing bag-colors-to-contain)
+    (map
+      (lambda (r)
+        (r 'own-color))
+      (filter
+        (lambda (rule)
+          (have-intersection?
+            (rule 'bag-colors)
+            bag-colors-to-contain))
+        rules)))
+  (let ((new-bag-fronteer
+           (bag-colors-containing bag-colors-to-contain)))
+    (let ((new-bag-colors-to-contain
+             (union new-bag-fronteer bag-colors-to-contain)))
+      (if (equal? (length new-bag-colors-to-contain) (length bag-colors-to-contain))
+         bag-colors-to-contain
+         (bag-colors-containing-transitively rules new-bag-colors-to-contain)))))
+
+(define (count-of-bags-transitively-containing rules bag-color)
+  (-
+    (length
+      (bag-colors-containing-transitively rules (list bag-color)))
+    1))
 
 (newline)
 (display "Part 1:")
 (newline)
-(display
+(define rules
   (parse-rules
     (string->list input-data)))
+
+(display
+  (count-of-bags-transitively-containing
+    rules
+    "shiny_gold"))
