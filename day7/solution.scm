@@ -10,8 +10,6 @@ faded blue bags contain no other bags.
 dotted black bags contain no other bags.
 ")
 
-(load-option 'regular-expression)
-
 ; Utility functions
 (define (contains? el list)
   (not (eq? false (member el list))))
@@ -152,11 +150,10 @@ dotted black bags contain no other bags.
   (define (dispatch op)
     (cond ((eq? op 'own-color) left)
           ((eq? op 'bag-colors) bag-colors)
-          ((eq? op 'bag-count) bag-count)
+          ((eq? op 'contained-bags) right)
           ((eq? op 'as-list) (list left right))
           (else (error "Unsupported rule op:" op))))
-  dispatch
-)
+  dispatch)
 
 ; Solution
 (define (bag-colors-containing-transitively rules bag-colors-to-contain)
@@ -184,14 +181,43 @@ dotted black bags contain no other bags.
       (bag-colors-containing-transitively rules (list bag-color)))
     1))
 
-(newline)
-(display "Part 1:")
-(newline)
+(define (number-of-bags-contained rules bag-color)
+  (let ((found-rule
+           (find
+              (lambda (r)
+                (equal?
+                  (r 'own-color)
+                  bag-color))
+           rules)))
+    (let ((bags (found-rule 'contained-bags)))
+      (apply +
+        (map
+          (lambda (bag)
+            (+
+              (car bag)
+              (*
+                (car bag)
+                (number-of-bags-contained rules (cadr bag)))))
+          bags)))))
+
 (define rules
   (parse-rules
     (string->list input-data)))
 
+(newline)
+(display "Part 1:")
+(newline)
 (display
   (count-of-bags-transitively-containing
     rules
     "shiny_gold"))
+(newline)
+
+(newline)
+(display "Part 2:")
+(newline)
+(display
+  (number-of-bags-contained
+    rules
+    "shiny_gold"))
+(newline)
