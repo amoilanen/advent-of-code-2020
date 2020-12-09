@@ -14,6 +14,9 @@ acc +6
 (define (contains? el list)
   (not (eq? false (member el list))))
 
+(define (identity x)
+  (values x))
+
 (define (split-list-by-list l splitters)
   (define (split l splitted-part already-splitted)
     (cond ((null? l)
@@ -34,6 +37,10 @@ acc +6
           (else (nth-loop (- n 1) (cdr l)))))
   (if (< index 0) (error "Index out of bounds" index list)
     (nth-loop index list)))
+
+(define (range from to)
+  (if (> from to) '()
+    (cons from (range (+ 1 from) to))))
 
 ; Parser
 (define (parse-instructions input)
@@ -85,7 +92,7 @@ acc +6
     (if (contains? instruction-index history) (make-evaluation-result #f acc)
       (let ((next-instruction-index (compute-next-instruction-index instruction instruction-index))
             (next-acc (compute-next-acc instruction acc)))
-        (if (equal? instruction-index instructions-number) (make-evaluation-result #t acc)
+        (if (equal? next-instruction-index instructions-number) (make-evaluation-result #t next-acc)
           (evaluate-next
             (nth next-instruction-index instructions)
             next-instruction-index
@@ -93,13 +100,53 @@ acc +6
             (cons instruction-index history))))))
   (evaluate-next (car instructions) 0 0 '()))
 
+(define (generate-corrected-instructions-variants instructions)
+  (define (flip-instruction instruction)
+    (cond ((equal? (instruction 'opcode) "nop")
+            (make-instruction "jump" (instruction 'operand)))
+          ((equal? (instruction 'opcode) "jmp")
+            (make-instruction "nop" (instruction 'operand)))
+          (else #f)))
+  (define (try-flipping-instruction-at-index index)
+    (let ((instruction (nth index instructions)))
+      (let ((flipped-instruction (flip-instruction instruction)))
+        (if (not flipped-instruction) #f
+          (append
+            (take instructions index)
+            (list flipped-instruction)
+            (drop instructions (+ index 1)))))))
+  (let ((indexes
+           (range 0 (- (length instructions) 1))))
+    (filter
+      identity
+      (map
+        try-flipping-instruction-at-index
+        indexes))))
+
+(define (try-correcting-and-find-result-after-termination instructions)
+  (let ((all-instruction-variants
+          (cons
+            instructions
+            (generate-corrected-instructions-variants instructions))))
+    (let ((all-results
+             (map
+                evaluate
+                all-instruction-variants)))
+      (let ((result-with-termination (find (lambda (r) (r 'has-terminated)) all-results)))
+        (result-with-termination 'acc-value)))))
+
+(define instructions
+  (parse-instructions
+        (string->list input-data)))
+
 (newline)
 (display "Part 1:")
 (newline)
-(display
-  (
-    (evaluate
-      (parse-instructions
-        (string->list input-data)))
-    'acc-value))
+(display ((evaluate instructions) 'acc-value))
+(newline)
+
+(newline)
+(display "Part 2:")
+(newline)
+(display (try-correcting-and-find-result-after-termination instructions))
 (newline)
