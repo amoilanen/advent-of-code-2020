@@ -31,6 +31,11 @@
 (define (split-list-by l el)
   (split-list-by-list l (list el)))
 
+(define (take-at-most l n)
+  (if (> n (length l))
+    l
+    (take l n)))
+
 ; Parser
 (define (parse-numbers input)
   (let ((numbers-input (split-list-by input '#\newline)))
@@ -40,20 +45,21 @@
         (lambda (x) (> (length x) 0))
         numbers-input))))
 
-(define (find-jolts adapters)
+(define (sorted-full-chain adapters)
   (let ((max-adapter (apply max adapters)))
     (let ((device (+ max-jolt-difference max-adapter)))
       (let ((full-chain (append (list 0 device) adapters)))
-        (let ((sorted-full-chain
-                 (sort
-                   full-chain
-                   (lambda (x y) (< x y))
-                 )))
-          (let ((adapter-pairs (zip sorted-full-chain (cdr sorted-full-chain))))
-            (map
-              (lambda (p)
-                (- (cadr p) (car p)))
-              adapter-pairs)))))))
+        (sort
+           full-chain
+           (lambda (x y) (< x y)))))))
+
+(define (find-jolts adapters)
+  (let ((full-chain (sorted-full-chain adapters)))
+    (let ((adapter-pairs (zip full-chain (cdr full-chain))))
+      (map
+         (lambda (p)
+            (- (cadr p) (car p)))
+            adapter-pairs))))
 
 (define (jolt-counts jolts)
   (define (count-next-jolt rest-of-jolts frequencies)
@@ -74,6 +80,25 @@
     (cdr (assoc 3 jolt-counts))
     (cdr (assoc 1 jolt-counts))))
 
+(define (construct-connectivity-list adapters)
+  (let ((full-chain (sorted-full-chain adapters)))
+    (define (process-next-adapter remaining-adapters connectivity-list)
+      (if (null? remaining-adapters) connectivity-list
+        (let ((current-adapter (car remaining-adapters)))
+          (let ((connectable-adapters
+            (filter
+              (lambda (a)
+                (<= (- a current-adapter) 3))
+              (take-at-most (cdr remaining-adapters) max-jolt-difference))))
+            (process-next-adapter
+              (cdr remaining-adapters)
+              (append
+                connectivity-list
+                (list (list current-adapter connectable-adapters))))))))
+    (process-next-adapter full-chain '())))
+
+; Output
+
 (define adapters-in-my-bag
   (parse-numbers
     (string->list input-data)))
@@ -86,4 +111,12 @@
     (jolt-counts
       (find-jolts
         adapters-in-my-bag))))
+(newline)
+
+(newline)
+(display "Part 2:")
+(newline)
+(display
+  (construct-connectivity-list
+    adapters-in-my-bag))
 (newline)
