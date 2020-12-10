@@ -1,107 +1,15 @@
 (define input-data "
-149
-87
-67
-45
-76
-29
-107
-88
-4
-11
-118
-160
-20
-115
-130
-91
-144
-152
-33
-94
-53
-148
-138
-47
-104
-121
-112
-116
-99
-105
-34
-14
-44
-137
-52
-2
-65
-141
-140
-86
-84
-81
-124
-62
-15
-68
-147
-27
-106
-28
-69
-163
-97
-111
-162
-17
-159
-122
-156
-127
-46
-35
-128
-123
-48
-38
-129
-161
-3
-24
-60
-58
-155
-22
-55
-75
 16
-8
-78
-134
-30
-61
-72
-54
-41
-1
-59
-101
 10
-85
-139
-9
-98
-21
-108
-117
-131
-66
-23
-77
+15
+5
+1
+11
 7
-100
-51
+19
+6
+12
+4
 ")
 
 (define max-jolt-difference 3)
@@ -197,30 +105,41 @@
                 (list (list current-adapter connectable-adapters))))))))
     (process-next-adapter full-chain '())))
 
-; Inefficient recursive algorithm: fails with "out of memory"! Come up with a more efficient version
-(define (adapter-combinations connectivity-list)
-  (if (null? connectivity-list) '()
-    (let ((first-adapter-connectivity (car connectivity-list))
-          (rest-of-connectivity-list (cdr connectivity-list)))
-      (let ((adapters-connectable-to-first-adapter (cadr first-adapter-connectivity))
-            (first-adapter (car first-adapter-connectivity)))
-        (let ((next-adapter-combinations
-                 (apply
-                   append
-                   (map
-                     (lambda (next-adapter)
-                       (let ((next-connectivity-list
-                                (drop-until
-                                   (lambda (connectivity)
-                                     (equal? (car connectivity) next-adapter))
-                                   rest-of-connectivity-list)))
-                         (adapter-combinations next-connectivity-list)))
-                     adapters-connectable-to-first-adapter))))
-          (if (null? next-adapter-combinations) (list first-adapter)
-            (map
-              (lambda (c)
-                (cons first-adapter c))
-              next-adapter-combinations)))))))
+(define (compute-number-of-combinations-for-all connectivity-list)
+  (define (compute-number-of-combinations-from-known remaining-connectivity-list already-computed-numbers)
+    (define (get-already-computed-number adapter)
+      (cdr
+        (find
+          (lambda (computed-number)
+            (equal? adapter (car computed-number)))
+          already-computed-numbers)))
+    (if (null? remaining-connectivity-list) already-computed-numbers
+      (let ((next-adapter-connectivity (car remaining-connectivity-list))
+            (rest-of-connectivity-list (cdr remaining-connectivity-list)))
+        (let ((next-adapter (car next-adapter-connectivity))
+              (adapters-connectable-from-next-adapter (cadr next-adapter-connectivity)))
+          (let ((number-of-combinations-for-next-adapter
+                   (apply
+                     +
+                     (map
+                       get-already-computed-number
+                       adapters-connectable-from-next-adapter))))
+            (compute-number-of-combinations-from-known
+              (cdr remaining-connectivity-list)
+              (cons
+                (cons next-adapter number-of-combinations-for-next-adapter)
+                already-computed-numbers)))))))
+  (if (null? connectivity-list) 0
+    (let ((reversed-connectivity-list (reverse connectivity-list)))
+      (compute-number-of-combinations-from-known
+        (cdr reversed-connectivity-list)
+        (list (cons (car (car reversed-connectivity-list)) 1))))))
+
+(define (combinations-number adapters)
+  (cdr
+    (car
+      (compute-number-of-combinations-for-all
+        (construct-connectivity-list adapters)))))
 
 ; Output
 
@@ -242,8 +161,6 @@
 (display "Part 2:")
 (newline)
 (display
-  (length
-    (adapter-combinations
-      (construct-connectivity-list
-        adapters-in-my-bag))))
+  (combinations-number
+      adapters-in-my-bag))
 (newline)
