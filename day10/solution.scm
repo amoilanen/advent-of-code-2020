@@ -129,11 +129,10 @@
               (cons
                 (cons next-adapter number-of-combinations-for-next-adapter)
                 already-computed-numbers)))))))
-  (if (null? connectivity-list) 0
-    (let ((reversed-connectivity-list (reverse connectivity-list)))
-      (compute-number-of-combinations-from-known
-        (cdr reversed-connectivity-list)
-        (list (cons (car (car reversed-connectivity-list)) 1))))))
+  (let ((reversed-connectivity-list (reverse connectivity-list)))
+    (compute-number-of-combinations-from-known
+      (cdr reversed-connectivity-list)
+      (list (cons (car (car reversed-connectivity-list)) 1)))))
 
 (define (combinations-number adapters)
   (cdr
