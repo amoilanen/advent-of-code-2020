@@ -61,7 +61,7 @@
            full-chain
            (lambda (x y) (< x y)))))))
 
-(define (find-jolts adapters)
+(define (jolt-pairs adapters)
   (let ((full-chain (sorted-full-chain adapters)))
     (let ((adapter-pairs (zip full-chain (cdr full-chain))))
       (map
@@ -83,10 +83,14 @@
                 frequencies)))))))
   (count-next-jolt jolts '()))
 
-(define (jolt-counts-magic-number jolt-counts)
-  (*
-    (cdr (assoc 3 jolt-counts))
-    (cdr (assoc 1 jolt-counts))))
+(define (jolt-counts-magic-number adapters)
+  (let ((counts
+           (jolt-counts
+             (jolt-pairs
+               adapters))))
+    (*
+      (cdr (assoc 3 counts))
+      (cdr (assoc 1 counts)))))
 
 (define (construct-connectivity-list adapters)
   (let ((full-chain (sorted-full-chain adapters)))
@@ -151,9 +155,7 @@
 (newline)
 (display
   (jolt-counts-magic-number
-    (jolt-counts
-      (find-jolts
-        adapters-in-my-bag))))
+    adapters-in-my-bag))
 (newline)
 
 (newline)
