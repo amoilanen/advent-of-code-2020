@@ -169,6 +169,15 @@ L.LLLLL.LL
 (display "Part 1:")
 (newline)
 (display
-  (number-of-occupied-seats
-    (update-layout-until-stabilization layout)))
+  (with-timings
+    (lambda ()
+      (number-of-occupied-seats
+        (update-layout-until-stabilization layout)))
+    (lambda (run-time gc-time real-time)
+      (write (internal-time/ticks->seconds run-time))
+      (write-char #\space)
+      (write (internal-time/ticks->seconds gc-time))
+      (write-char #\space)
+      (write (internal-time/ticks->seconds real-time))
+      (newline))))
 (newline)
