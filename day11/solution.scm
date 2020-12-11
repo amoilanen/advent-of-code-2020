@@ -57,8 +57,11 @@ L.LLLLL.LL
 ; Parser
 (define (parse-layout input)
   (make-matrix
-    (omit-empty
-      (split-list-by input '#\newline))))
+    (list->vector
+      (map
+        list->vector
+        (omit-empty
+          (split-list-by input '#\newline))))))
 
 ; Layout
 (define (make-matrix rows)
@@ -72,8 +75,8 @@ L.LLLLL.LL
     rows)
   (define (element-at row-idx column-idx)
     (if (are-valid-cell-coordinates row-idx column-idx)
-      (let ((row (nth row-idx rows)))
-        (nth column-idx row))
+      (let ((row (vector-ref rows row-idx)))
+        (vector-ref row column-idx))
       #f))
   (define (adjacent-values row-idx column-idx)
     (let ((adjacent-indexes
@@ -110,23 +113,31 @@ L.LLLLL.LL
             (else current-value))))
   (define (updated-matrix)
     (make-matrix
-      (map
-        (lambda (row-index)
-          (map
-            (lambda (column-index)
-              (updated-value-at row-index column-index))
-            (range 0 (- column-number 1))))
-        (range 0 (- row-number 1)))))
+      (list->vector
+        (map
+          (lambda (row-index)
+            (list->vector
+              (map
+                (lambda (column-index)
+                  (updated-value-at row-index column-index))
+                column-indexes)))
+          row-indexes))))
   (define row-number
-    (length rows))
+    (vector-length rows))
   (define column-number
     (if (null? rows) 0
-       (length (car rows))))
+       (vector-length (vector-ref rows 0))))
+  (define row-indexes (range 0 (- row-number 1)))
+  (define column-indexes (range 0 (- column-number 1)))
+  (define (rows-as-list)
+    (map
+      vector->list
+      (vector->list rows)))
   (define (dispatch op)
-    (cond ((eq? op 'rows) rows)
+    (cond ((eq? op 'rows) (rows-as-list))
           ((eq? op 'adjacent-values) adjacent-values)
           ((eq? op 'updated-value-at) updated-value-at)
-          ((eq? op 'updated-matrix) updated-matrix)
+          ((eq? op 'updated-matrix) (updated-matrix))
           ((eq? op 'element-at) element-at)
           ((eq? op 'column-number) column-number)
           ((eq? op 'row-number) row-number)
@@ -138,7 +149,7 @@ L.LLLLL.LL
 
 (define (update-layout-until-stabilization layout)
   (let ((updated-layout
-           ((layout 'updated-matrix))))
+           (layout 'updated-matrix)))
     (if (equal? (layout 'rows) (updated-layout 'rows))
       layout
       (update-layout-until-stabilization updated-layout))))
