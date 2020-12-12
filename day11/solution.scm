@@ -94,42 +94,53 @@ L.LLLLL.LL
   dispatch)
 
 ; Solution
-(define (adjacent-values row-idx column-idx matrix)
-  (let ((adjacent-indexes
-           (list
-             (cons (- row-idx 1) (- column-idx 1))
-             (cons (- row-idx 1) column-idx)
-             (cons (- row-idx 1) (+ column-idx 1))
-             (cons row-idx (- column-idx 1))
-             (cons row-idx (+ column-idx 1))
-             (cons (+ row-idx 1) (- column-idx 1))
-             (cons (+ row-idx 1) column-idx)
-             (cons (+ row-idx 1) (+ column-idx 1)))))
-      (filter
-        identity
-        (map
-          (lambda (x)
-            ((matrix 'element-at) (car x) (cdr x)))
-          adjacent-indexes))))
+(define (immediately-adjacent-value row-idx column-idx row-dir column-dir matrix)
+  (let ((adjacent-row-idx (+ row-idx row-dir))
+        (adjacent-column-idx (+ column-idx column-dir)))
+    ((matrix 'element-at) adjacent-row-idx adjacent-column-idx)))
 
-(define (updated-value-at row-idx column-idx matrix)
+(define adjacent-directions
+  (list
+    (cons -1 -1)
+    (cons -1 0)
+    (cons -1 1)
+    (cons 0 -1)
+    (cons 0 1)
+    (cons 1 -1)
+    (cons 1 0)
+    (cons 1 1)))
+
+(define (adjacent-values row-idx column-idx adjacent-value-selector matrix)
+  (filter
+    identity
+    (map
+      (lambda (x)
+        (adjacent-value-selector
+          row-idx
+          column-idx
+          (car x)
+          (cdr x)
+          matrix))
+      adjacent-directions)))
+
+(define (updated-value-at row-idx column-idx seated-tolerance adjacent-value-selector matrix)
   (let ((current-value
            ((matrix 'element-at) row-idx column-idx))
         (adjacent-occupied-count
            (count-of
               '#\#
-              (adjacent-values row-idx column-idx matrix))))
+              (adjacent-values row-idx column-idx adjacent-value-selector matrix))))
     (cond ((and
               (equal? current-value '#\L)
               (equal? 0 adjacent-occupied-count))
             '#\#)
           ((and
               (equal? current-value '#\#)
-              (>= adjacent-occupied-count 4))
+              (>= adjacent-occupied-count seated-tolerance))
             '#\L)
           (else current-value))))
 
-(define (update-matrix matrix)
+(define (update-matrix seated-tolerance adjacent-value-selector matrix)
   (define row-indexes (range 0 (- (matrix 'row-number) 1)))
   (define column-indexes (range 0 (- (matrix 'column-number) 1)))
   (make-matrix
@@ -137,16 +148,21 @@ L.LLLLL.LL
       (lambda (row-index)
         (map
           (lambda (column-index)
-            (updated-value-at row-index column-index matrix))
+            (updated-value-at
+              row-index
+              column-index
+              seated-tolerance
+              adjacent-value-selector
+              matrix))
           column-indexes))
       row-indexes)))
 
-(define (update-layout-until-stabilization layout)
+(define (update-layout-until-stabilization seated-tolerance adjacent-value-selector layout)
   (let ((updated-layout
-           (update-matrix layout)))
+           (update-matrix seated-tolerance adjacent-value-selector layout)))
     (if (equal? (layout 'rows) (updated-layout 'rows))
       layout
-      (update-layout-until-stabilization updated-layout))))
+      (update-layout-until-stabilization seated-tolerance adjacent-value-selector updated-layout))))
 
 (define (number-of-occupied-seats layout)
   (count-of
@@ -166,7 +182,10 @@ L.LLLLL.LL
   (with-timings
     (lambda ()
       (number-of-occupied-seats
-        (update-layout-until-stabilization layout)))
+        (update-layout-until-stabilization
+          4
+          immediately-adjacent-value
+          layout)))
     (lambda (run-time gc-time real-time)
       (write (internal-time/ticks->seconds run-time))
       (write-char #\space)
