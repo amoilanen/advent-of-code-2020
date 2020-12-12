@@ -57,14 +57,16 @@ L.LLLLL.LL
 ; Parser
 (define (parse-layout input)
   (make-matrix
+    (omit-empty
+      (split-list-by input '#\newline))))
+
+; Layout
+(define (make-matrix rows-list)
+  (define rows
     (list->vector
       (map
         list->vector
-        (omit-empty
-          (split-list-by input '#\newline))))))
-
-; Layout
-(define (make-matrix rows)
+        rows-list)))
   (define (are-valid-cell-coordinates row-idx column-idx)
     (and
       (< row-idx row-number)
@@ -78,78 +80,70 @@ L.LLLLL.LL
       (let ((row (vector-ref rows row-idx)))
         (vector-ref row column-idx))
       #f))
-  (define (adjacent-values row-idx column-idx)
-    (let ((adjacent-indexes
-             (list
-               (cons (- row-idx 1) (- column-idx 1))
-               (cons (- row-idx 1) column-idx)
-               (cons (- row-idx 1) (+ column-idx 1))
-               (cons row-idx (- column-idx 1))
-               (cons row-idx (+ column-idx 1))
-               (cons (+ row-idx 1) (- column-idx 1))
-               (cons (+ row-idx 1) column-idx)
-               (cons (+ row-idx 1) (+ column-idx 1)))))
-        (filter
-          identity
-          (map
-            (lambda (x)
-              (element-at (car x) (cdr x)))
-            adjacent-indexes))))
-  (define (updated-value-at row-idx column-idx)
-    (let ((current-value
-             (element-at row-idx column-idx))
-          (adjacent-occupied-count
-             (count-of
-                '#\#
-                (adjacent-values row-idx column-idx))))
-      (cond ((and
-                (equal? current-value '#\L)
-                (equal? 0 adjacent-occupied-count))
-              '#\#)
-            ((and
-                (equal? current-value '#\#)
-                (>= adjacent-occupied-count 4))
-              '#\L)
-            (else current-value))))
-  (define (updated-matrix)
-    (make-matrix
-      (list->vector
-        (map
-          (lambda (row-index)
-            (list->vector
-              (map
-                (lambda (column-index)
-                  (updated-value-at row-index column-index))
-                column-indexes)))
-          row-indexes))))
   (define row-number
     (vector-length rows))
   (define column-number
     (if (null? rows) 0
        (vector-length (vector-ref rows 0))))
-  (define row-indexes (range 0 (- row-number 1)))
-  (define column-indexes (range 0 (- column-number 1)))
-  (define (rows-as-list)
-    (map
-      vector->list
-      (vector->list rows)))
   (define (dispatch op)
-    (cond ((eq? op 'rows) (rows-as-list))
-          ((eq? op 'adjacent-values) adjacent-values)
-          ((eq? op 'updated-value-at) updated-value-at)
-          ((eq? op 'updated-matrix) (updated-matrix))
+    (cond ((eq? op 'rows) rows-list)
           ((eq? op 'element-at) element-at)
           ((eq? op 'column-number) column-number)
           ((eq? op 'row-number) row-number)
           (else (error "Unsupported matrix op:" op))))
   dispatch)
 
-
 ; Solution
+(define (adjacent-values row-idx column-idx matrix)
+  (let ((adjacent-indexes
+           (list
+             (cons (- row-idx 1) (- column-idx 1))
+             (cons (- row-idx 1) column-idx)
+             (cons (- row-idx 1) (+ column-idx 1))
+             (cons row-idx (- column-idx 1))
+             (cons row-idx (+ column-idx 1))
+             (cons (+ row-idx 1) (- column-idx 1))
+             (cons (+ row-idx 1) column-idx)
+             (cons (+ row-idx 1) (+ column-idx 1)))))
+      (filter
+        identity
+        (map
+          (lambda (x)
+            ((matrix 'element-at) (car x) (cdr x)))
+          adjacent-indexes))))
+
+(define (updated-value-at row-idx column-idx matrix)
+  (let ((current-value
+           ((matrix 'element-at) row-idx column-idx))
+        (adjacent-occupied-count
+           (count-of
+              '#\#
+              (adjacent-values row-idx column-idx matrix))))
+    (cond ((and
+              (equal? current-value '#\L)
+              (equal? 0 adjacent-occupied-count))
+            '#\#)
+          ((and
+              (equal? current-value '#\#)
+              (>= adjacent-occupied-count 4))
+            '#\L)
+          (else current-value))))
+
+(define (update-matrix matrix)
+  (define row-indexes (range 0 (- (matrix 'row-number) 1)))
+  (define column-indexes (range 0 (- (matrix 'column-number) 1)))
+  (make-matrix
+    (map
+      (lambda (row-index)
+        (map
+          (lambda (column-index)
+            (updated-value-at row-index column-index matrix))
+          column-indexes))
+      row-indexes)))
 
 (define (update-layout-until-stabilization layout)
   (let ((updated-layout
-           (layout 'updated-matrix)))
+           (update-matrix layout)))
     (if (equal? (layout 'rows) (updated-layout 'rows))
       layout
       (update-layout-until-stabilization updated-layout))))
