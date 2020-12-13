@@ -2,6 +2,14 @@
 (load "./lib/stream.scm")
 (load "./lib/timings.scm")
 
+; For part 2 finding the t is equivalent to finding the smallest natural solution for the following system of linear equations 
+; and taking t = 7 * x_1
+; 
+; 7 * x_1 + 1 = 13 * x_2
+; 7 * x_1 + 4 = 59 * x_3
+; 7 * x_1 + 6 = 31 * x_4
+; 7 * x_1 + 7 = 19 * x_5
+
 (define input-data "
 939
 7,13,x,x,59,x,31,19
