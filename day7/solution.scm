@@ -1,3 +1,7 @@
+(load "./lib/set.scm")
+(load "./lib/list.scm")
+(load "./lib/parser.scm")
+
 (define input-data "
 light red bags contain 1 bright white bag, 2 muted yellow bags.
 dark orange bags contain 3 bright white bags, 4 muted yellow bags.
@@ -10,99 +14,7 @@ faded blue bags contain no other bags.
 dotted black bags contain no other bags.
 ")
 
-; Utility functions
-(define (contains? el list)
-  (not (eq? false (member el list))))
-
-(define (omit-duplicates l)
-  (cond ((null? l) '())
-        ((contains? (car l) (cdr l))
-          (omit-duplicates (cdr l)))
-        (else
-          (cons
-            (car l)
-            (omit-duplicates (cdr l))))))
-
-(define (every? predicate l)
-  (cond ((null? l) #t)
-        ((not (predicate (car l))) #f)
-        (else (every? predicate (cdr l)))))
-
-(define (some? predicate l)
-  (not
-    (every?
-      (lambda (x)
-        (not
-          (predicate x)))
-      l)))
-
-(define (have-intersection? first second)
-  (some?
-    (lambda (f) (contains? f second))
-    first))
-
-; Set operations
-(define (union . lists)
-  (omit-duplicates (apply append lists)))
-
-(define (split-list-by-list l splitters)
-  (define (split l splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((contains? (car l) splitters)
-            (split (cdr l) '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l '() '())))
-
-(define (split-list-by l el)
-  (split-list-by-list l (list el)))
-
-(define (join-strings-with sep strings)
-  (if (null? strings) '()
-    (substring
-      (apply
-        string-append
-        (map
-          (lambda (s)
-            (string-append sep s))
-          strings))
-      1)))
-
-(define (drop-from-tail l num)
-  (reverse
-    (drop
-      (reverse l)
-      num)))
-
-(define (omit-empty l)
-  (filter
-    (lambda (p) (> (length p) 0))
-    l))
-
 ; Parser
-(define (group-into-words input)
-  (define (accumulate-words input current-word output)
-    (define (append-word current-word output)
-      (if (null? current-word)
-              output 
-              (cons (list->string (reverse current-word)) output)))
-    (cond ((null? input)
-            (reverse (append-word current-word output)))
-          ((equal? '#\space (car input))
-            (accumulate-words
-              (cdr input)
-              '()
-              (append-word current-word output)))
-          (else
-            (accumulate-words
-              (cdr input)
-              (cons
-                (car input)
-                current-word)
-              output))))
-  (accumulate-words input '() '()))
-
 (define (parse-rules input)
   (let ((rule-inputs (split-list-by input '#\newline)))
     (map

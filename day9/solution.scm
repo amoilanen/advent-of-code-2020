@@ -1,3 +1,6 @@
+(load "./lib/list.scm")
+(load "./lib/tuples.scm")
+
 (define input-data "
 35
 20
@@ -21,55 +24,6 @@
 576
 ")
 (define preamble-size 5)
-
-; Utility functions
-(define (contains? el list)
-  (not (eq? false (member el list))))
-
-(define (split-list-by-list l splitters)
-  (define (split l splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((contains? (car l) splitters)
-            (split (cdr l) '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l '() '())))
-
-(define (split-list-by l el)
-  (split-list-by-list l (list el)))
-
-(define (drop-from-tail l num)
-  (reverse
-    (drop
-      (reverse l)
-      num)))
-
-(define (sublist from to l)
-  (let ((len (length l)))
-    (drop-from-tail
-      (drop l from)
-      (- len 1 to))))
-
-(define (unique-n-tuples-of elements n)
-  (define (element-pairs first rest)
-    (if (null? rest)
-      '()
-      (cons
-        (list first (car rest))
-        (element-pairs first (cdr rest)))))
-  (if (eq? n 1) (map (lambda (x) (list x)) elements)
-    (if (null? elements) '()
-      (append
-        (map
-          (lambda (lists) (apply append lists))
-          (element-pairs
-            (list (car elements))
-            (unique-n-tuples-of (cdr elements) (- n 1))))
-        (unique-n-tuples-of (cdr elements) n)))))
-
-(define (unique-pairs-of elements)
-  (unique-n-tuples-of elements 2))
 
 ; Parser
 (define (parse-numbers input)

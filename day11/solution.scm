@@ -1,3 +1,6 @@
+(load "./lib/list.scm")
+(load "./lib/identity.scm")
+
 (define input-data "
 L.LL.LL.LL
 LLLLLLL.LL
@@ -13,49 +16,6 @@ L.LLLLL.LL
 
 (define occupied-seat '#\#)
 (define empty-seat '#\L)
-
-; Utility functions
-(define (contains? el list)
-  (not (eq? false (member el list))))
-
-(define (identity x)
-  (values x))
-
-(define (split-list-by-list l splitters)
-  (define (split l splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((contains? (car l) splitters)
-            (split (cdr l) '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l '() '())))
-
-(define (split-list-by l el)
-  (split-list-by-list l (list el)))
-
-(define (omit-empty l)
-  (filter
-    (lambda (p) (> (length p) 0))
-    l))
-
-(define (nth index list)
-  (define (nth-loop n l)
-    (cond ((null? l) (error "Index out of bounds" index list))
-          ((eq? n 0) (car l))
-          (else (nth-loop (- n 1) (cdr l)))))
-  (if (< index 0) (error "Index out of bounds" index list)
-    (nth-loop index list)))
-
-(define (range from to)
-  (if (> from to) '()
-    (cons from (range (+ 1 from) to))))
-
-(define (count-of el l)
-  (length
-    (filter
-      (lambda (x) (equal? x el))
-      l)))
 
 ; Parser
 (define (parse-layout input)

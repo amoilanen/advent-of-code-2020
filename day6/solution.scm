@@ -1,3 +1,6 @@
+(load "./lib/set.scm")
+(load "./lib/list.scm")
+
 (define input-data "
 abc
 
@@ -15,57 +18,6 @@ a
 
 b
 ")
-
-; Utility functions
-(define (split-list-by l el)
-  (define (split l el splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((eq? (car l) el)
-            (split (cdr l) el '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) el (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l el '() '())))
-
-(define (omit-duplicates l)
-  (cond ((null? l) '())
-        ((contains? (car l) (cdr l))
-          (omit-duplicates (cdr l)))
-        (else
-          (cons
-            (car l)
-            (omit-duplicates (cdr l))))))
-
-(define (contains? el list)
-  (not (eq? false (member el list))))
-
-; Set operations
-(define (union . lists)
-  (omit-duplicates (apply append lists)))
-
-(define (intersection . lists)
-  (define (intersect-two first second)
-    (cond ((null? first)
-            '())
-          ((contains? (car first) second)
-            (cons
-              (car first)
-              (intersect-two
-                (cdr first)
-                second)))
-          (else (intersect-two
-                  (cdr first)
-                  second))))
-  (cond ((null? lists) '())
-        ((equal? (length lists) 1) (car lists))
-        (else (let ((first (car lists))
-              (rest (cdr lists)))
-          (apply
-            intersection
-            (map
-              (lambda (second)
-                (intersect-two first second))
-              rest))))))
 
 ; Parser
 (define (parse-groups input)

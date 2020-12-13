@@ -1,45 +1,10 @@
+(load "./lib/boolean.scm")
+(load "./lib/list.scm")
+(load "./lib/parser.scm")
+
 (define input-data "1-3 a: abcde
 1-3 b: cdefg
 2-9 c: ccccccccc")
-
-; Utility functions
-(define (split-list-by l el)
-  (define (split l el splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((eq? (car l) el)
-            (split (cdr l) el '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) el (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l el '() '())))
-
-(define (nth index list)
-  (define (nth-loop n l)
-    (cond ((null? l) (error "Index out of bounds" index list))
-          ((eq? n 0) (car l))
-          (else (nth-loop (- n 1) (cdr l)))))
-  (if (< index 0) (error "Index out of bounds" index list)
-    (nth-loop index list)))
-
-(define (element-occurences-count el l)
-  (length
-    (filter
-      (lambda (x) (eq? el x))
-      l)))
-
-(define (strip-spaces input)
-  (filter
-    (lambda (s)
-      (not (eq? '#\space s)))
-    input))
-
-(define (char-list-to-string chars)
-  (apply string-append (map char->string chars)))
-
-(define (xor x y)
-  (and
-    (or x y)
-    (not (and x y))))
 
 ; Parser
 ; Scheme also has specialized Parser language https://www.gnu.org/software/mit-scheme/documentation/testing/mit-scheme-ref/Parser-Language.html

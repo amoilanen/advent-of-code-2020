@@ -1,3 +1,5 @@
+(load "./lib/list.scm")
+
 (define input-data "
 F10
 N3
@@ -5,23 +7,6 @@ F7
 R90
 F11
 ")
-
-; Utility functions
-(define (contains? el list)
-  (not (eq? false (member el list))))
-
-(define (split-list-by-list l splitters)
-  (define (split l splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((contains? (car l) splitters)
-            (split (cdr l) '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l '() '())))
-
-(define (split-list-by l el)
-  (split-list-by-list l (list el)))
 
 ; Parser
 (define (parse-instructions input)

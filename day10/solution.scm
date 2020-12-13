@@ -1,3 +1,5 @@
+(load "./lib/list.scm")
+
 (define input-data "
 16
 10
@@ -13,35 +15,6 @@
 ")
 
 (define max-jolt-difference 3)
-
-; Utility functions
-(define (contains? el list)
-  (not (eq? false (member el list))))
-
-(define (split-list-by-list l splitters)
-  (define (split l splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((contains? (car l) splitters)
-            (split (cdr l) '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l '() '())))
-
-(define (split-list-by l el)
-  (split-list-by-list l (list el)))
-
-(define (take-at-most l n)
-  (if (> n (length l))
-    l
-    (take l n)))
-
-(define (drop-until p l)
-  (cond ((null? l) '())
-        ((p (car l)) l)
-        (else (drop-until
-                p
-                (cdr l)))))
 
 ; Parser
 (define (parse-numbers input)

@@ -1,3 +1,5 @@
+(load "./lib/list.scm")
+
 (define input-data "
 ..##.......
 #...#...#..
@@ -13,31 +15,6 @@
 ")
 
 (define tree '#\#)
-
-; Utility functions
-(define (split-list-by l el)
-  (define (split l el splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((eq? (car l) el)
-            (split (cdr l) el '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) el (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l el '() '())))
-
-(define (nth index list)
-  (define (nth-loop n l)
-    (cond ((null? l) (error "Index out of bounds" index list))
-          ((eq? n 0) (car l))
-          (else (nth-loop (- n 1) (cdr l)))))
-  (if (< index 0) (error "Index out of bounds" index list)
-    (nth-loop index list)))
-
-(define (element-occurences-count el l)
-  (length
-    (filter
-      (lambda (x) (eq? el x))
-      l)))
 
 ; Parser
 (define (parse-matrix input)

@@ -1,19 +1,10 @@
+(load "./lib/list.scm")
+
 (define input-data "
 FFFBBFBLLR
 BFBBBFFRLR
 BFBBBBFLRR
 ")
-
-; Utility functions
-(define (split-list-by l el)
-  (define (split l el splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((eq? (car l) el)
-            (split (cdr l) el '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) el (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l el '() '())))
 
 ; Parser
 (define (parse-passes input)

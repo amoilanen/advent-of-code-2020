@@ -1,3 +1,7 @@
+(load "./lib/list.scm")
+(load "./lib/regex.scm")
+(load "./lib/string.scm")
+
 (define input-data "
 ecl:gry pid:860033327 eyr:2020 hcl:#fffffd
 byr:1937 iyr:2017 cid:147 hgt:183cm
@@ -13,49 +17,6 @@ hgt:179cm
 hcl:#cfa07d eyr:2025 pid:166559648
 iyr:2011 ecl:brn hgt:59in
 ")
-
-(load-option 'regular-expression)
-
-; Utility functions
-(define (split-list-by l el)
-  (define (split l el splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((eq? (car l) el)
-            (split (cdr l) el '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) el (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l el '() '())))
-
-(define (some? predicate l)
-  (not
-    (every?
-      (lambda (x)
-        (not
-          (predicate x)))
-      l)))
-
-(define (every? predicate l)
-  (cond ((null? l) #t)
-        ((not (predicate (car l))) #f)
-        (else (every? predicate (cdr l)))))
-
-(define (string-drop-suffix input suffix-len)
-  (list->string
-    (reverse
-      (drop
-        (reverse
-          (string->list input))
-        suffix-len))))
-
-(define (has-re-match re input)
-  (not
-    (equal?
-      (re-string-match re input)
-      #f)))
-
-(define (contains? el list)
-  (not (eq? false (member el list))))
 
 ; Parser
 (define (parse-passports input)

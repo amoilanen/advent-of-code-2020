@@ -1,3 +1,6 @@
+(load "./lib/list.scm")
+(load "./lib/identity.scm")
+
 (define input-data "
 nop +0
 acc +1
@@ -9,38 +12,6 @@ acc +1
 jmp -4
 acc +6
 ")
-
-; Utility functions
-(define (contains? el list)
-  (not (eq? false (member el list))))
-
-(define (identity x)
-  (values x))
-
-(define (split-list-by-list l splitters)
-  (define (split l splitted-part already-splitted)
-    (cond ((null? l)
-            (cons (reverse splitted-part) already-splitted))
-          ((contains? (car l) splitters)
-            (split (cdr l) '() (cons (reverse splitted-part) already-splitted)))
-          (else
-            (split (cdr l) (cons (car l) splitted-part) already-splitted))))
-  (reverse (split l '() '())))
-
-(define (split-list-by l el)
-  (split-list-by-list l (list el)))
-
-(define (nth index list)
-  (define (nth-loop n l)
-    (cond ((null? l) (error "Index out of bounds" index list))
-          ((eq? n 0) (car l))
-          (else (nth-loop (- n 1) (cdr l)))))
-  (if (< index 0) (error "Index out of bounds" index list)
-    (nth-loop index list)))
-
-(define (range from to)
-  (if (> from to) '()
-    (cons from (range (+ 1 from) to))))
 
 ; Parser
 (define (parse-instructions input)
