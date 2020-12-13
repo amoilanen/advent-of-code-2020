@@ -1,5 +1,6 @@
 (load "./lib/list.scm")
 (load "./lib/identity.scm")
+(load "./lib/timings.scm")
 
 (define input-data "
 L.LL.LL.LL
@@ -154,14 +155,6 @@ L.LLLLL.LL
 (define layout
   (parse-layout
     (string->list input-data)))
-
-(define (write-timings run-time gc-time real-time)
-  (write (internal-time/ticks->seconds run-time))
-  (write-char #\space)
-  (write (internal-time/ticks->seconds gc-time))
-  (write-char #\space)
-  (write (internal-time/ticks->seconds real-time))
-  (newline))
 
 (newline)
 (display "Part 1:")

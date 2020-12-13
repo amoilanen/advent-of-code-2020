@@ -1,5 +1,6 @@
 (load "./lib/list.scm")
 (load "./lib/stream.scm")
+(load "./lib/timings.scm")
 
 (define input-data "
 939
@@ -80,6 +81,8 @@
       earliest-departure-time)
     (cadr first-departure)))
 
+; TODO: Inefficient algorithm: the more the timestamp grows, the more time it requires to compute a reminder
+; Devise a more efficient algorithm
 (define (find-orderly-departure-timestamp departure-schedule)
   (let ((first-bus-id (cdr (car departure-schedule)))
         (other-bus-schedules (cdr departure-schedule)))
@@ -115,6 +118,9 @@
 (display "Part 2:")
 (newline)
 (display
-  (find-orderly-departure-timestamp
-    departure-schedule))
+  (with-timings
+    (lambda ()
+      (find-orderly-departure-timestamp
+        departure-schedule))
+    write-timings))
 (newline)

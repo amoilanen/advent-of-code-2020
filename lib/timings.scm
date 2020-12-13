@@ -1,0 +1,7 @@
+(define (write-timings run-time gc-time real-time)
+  (write (internal-time/ticks->seconds run-time))
+  (write-char #\space)
+  (write (internal-time/ticks->seconds gc-time))
+  (write-char #\space)
+  (write (internal-time/ticks->seconds real-time))
+  (newline))
