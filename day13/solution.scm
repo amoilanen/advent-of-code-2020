@@ -89,50 +89,40 @@
       earliest-departure-time)
     (cadr first-departure)))
 
-; TODO: Inefficient algorithm: the more the timestamp grows, the more time it requires to compute a reminder
-; Devise a more efficient algorithm
 (define (find-orderly-departure-timestamp departure-schedule)
-  (define (timestamp-match? window)
-    (every?
-      (lambda (x)
-        (equal? x (car window)))
-      (cdr window)))
-  (let ((match-length (length departure-schedule))
-        (normalized-timestamps-stream
-          (apply
-            stream-merge-ordered
-            (cons
-              (lambda (x y) (< x y))
-              (map
+  (let ((sorted-departure-schedule
+          (sort
+            departure-schedule
+            (lambda (x y)
+              (> (cdr x) (cdr y))))))
+    (let ((largest-bus-id-timestamp-offset (car (car sorted-departure-schedule))))
+      (let
+        ((normalized-sorted-departure-schedule
+           (map
+            (lambda (x)
+              (cons
+                (- (car x) largest-bus-id-timestamp-offset)
+                (cdr x)))
+            sorted-departure-schedule)))
+        normalized-sorted-departure-schedule
+          (let ((first-bus-id (cdr (car normalized-sorted-departure-schedule)))
+            (other-bus-schedules (cdr normalized-sorted-departure-schedule)))
+            (define (has-orderly-departure timestamp)
+              (every?
                 (lambda (bus-schedule)
-                  (stream-map
-                    (lambda (x)
-                      (- x (car bus-schedule)))
-                    (stream-multiples-of (cdr bus-schedule))))
-                departure-schedule)))))
-    (car
-      (stream-find-window
-        match-length
-        timestamp-match?
-        normalized-timestamps-stream))))
-
-(define (find-orderly-departure-timestamp departure-schedule)
-  (let ((first-bus-id (cdr (car departure-schedule)))
-        (other-bus-schedules (cdr departure-schedule)))
-    (define (has-orderly-departure timestamp)
-      (every?
-        (lambda (bus-schedule)
-          (let ((departure-offset (car bus-schedule))
-                (bus-id (cdr bus-schedule)))
-            (equal?
-              (remainder
-                (+ timestamp departure-offset)
-                bus-id)
-              0)))
-        other-bus-schedules))
-    (stream-find
-      has-orderly-departure
-      (stream-multiples-of first-bus-id))))
+                  (let ((departure-offset (car bus-schedule))
+                        (bus-id (cdr bus-schedule)))
+                    (equal?
+                      (remainder
+                        (+ timestamp departure-offset)
+                        bus-id)
+                      0)))
+                other-bus-schedules))
+            (-
+              (stream-find
+                has-orderly-departure
+                (stream-multiples-of first-bus-id))
+              largest-bus-id-timestamp-offset))))))
 
 ; Executing solutions
 (newline)
