@@ -94,3 +94,11 @@
       (let ((first-stream (car rest-of-streams)))
         (loop (cdr rest-of-streams) (stream-merge-two-ordered ordering first-stream result)))))
   (loop (cdr streams) (car streams)))
+
+(define (stream-find-window window-length predicate stream)
+  (define (find-next window s)
+    (if (predicate window) window
+      (find-next
+        (append (drop window 1) (list (car s)))
+        (force (cdr s)))))
+  (find-next (stream-take stream window-length) (stream-drop stream window-length)))
