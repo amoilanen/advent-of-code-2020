@@ -21,14 +21,38 @@
   (let ((bus-ids (split-list-by input '#\,)))
     (map
       (lambda (id)
-        (string->number id))
+        (list->string id))
+      bus-ids)))
+
+(define departure-time-and-bus-ids
+  (parse-input
+    (string->list input-data)))
+
+(define earliest-departure-time
+  (car departure-time-and-bus-ids))
+
+(define bus-ids
+  (map
+    (lambda (id)
+      (string->number id))
+    (filter
+      (lambda (x)
+        (not (equal? x "x")))
+      (cadr departure-time-and-bus-ids))))
+
+(define departure-schedule
+  (let ((all-schedules (cadr departure-time-and-bus-ids)))
+    (let ((schedule-length (length all-schedules)))
       (filter
-        (lambda (id)
-          (not (equal? id "x")))
+        (lambda (x) (cdr x))
         (map
-          (lambda (id)
-            (list->string id))
-          bus-ids)))))
+          (lambda (x)
+            (cons
+              (car x)
+              (string->number (cadr x))))
+          (zip
+            (range 0 (- schedule-length 1))
+            all-schedules))))))
 
 ; Solution
 (define (bus-schedule-stream bus-ids)
@@ -56,17 +80,25 @@
       earliest-departure-time)
     (cadr first-departure)))
 
-; Display
-(define departure-time-and-bus-ids
-  (parse-input
-    (string->list input-data)))
+(define (find-orderly-departure-timestamp departure-schedule)
+  (let ((first-bus-id (cdr (car departure-schedule)))
+        (other-bus-schedules (cdr departure-schedule)))
+    (define (has-orderly-departure timestamp)
+      (every?
+        (lambda (bus-schedule)
+          (let ((departure-offset (car bus-schedule))
+                (bus-id (cdr bus-schedule)))
+            (equal?
+              (remainder
+                (+ timestamp departure-offset)
+                bus-id)
+              0)))
+        other-bus-schedules))
+    (stream-find
+      has-orderly-departure
+      (stream-multiples-of first-bus-id))))
 
-(define earliest-departure-time
-  (car departure-time-and-bus-ids))
-
-(define bus-ids
-  (cadr departure-time-and-bus-ids))
-
+; Executing solutions
 (newline)
 (display "Part 1:")
 (newline)
@@ -77,4 +109,12 @@
        earliest-departure-time
        (bus-schedule-stream
           bus-ids))))
+(newline)
+
+(newline)
+(display "Part 2:")
+(newline)
+(display
+  (find-orderly-departure-timestamp
+    departure-schedule))
 (newline)
