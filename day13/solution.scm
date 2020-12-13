@@ -11,8 +11,8 @@
 ; 7 * x_1 + 7 = 19 * x_5
 
 (define input-data "
-939
-7,13,x,x,59,x,31,19
+1014511
+17,x,x,x,x,x,x,41,x,x,x,x,x,x,x,x,x,643,x,x,x,x,x,x,x,23,x,x,x,x,13,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,29,x,433,x,x,x,x,x,37,x,x,x,x,x,x,x,x,x,x,x,x,19
 ")
 
 ; Parser
@@ -89,24 +89,26 @@
       earliest-departure-time)
     (cadr first-departure)))
 
-(define (find-orderly-departure-timestamp departure-schedule)
+; Inefficient algorithm: takes too much time to run
+(define (find-orderly-departure-timestamp departure-schedule surely-after-timestamp)
   (let ((sorted-departure-schedule
           (sort
             departure-schedule
             (lambda (x y)
               (> (cdr x) (cdr y))))))
-    (let ((largest-bus-id-timestamp-offset (car (car sorted-departure-schedule))))
-      (let
-        ((normalized-sorted-departure-schedule
-           (map
-            (lambda (x)
-              (cons
-                (- (car x) largest-bus-id-timestamp-offset)
-                (cdr x)))
-            sorted-departure-schedule)))
-        normalized-sorted-departure-schedule
-          (let ((first-bus-id (cdr (car normalized-sorted-departure-schedule)))
-            (other-bus-schedules (cdr normalized-sorted-departure-schedule)))
+    (let ((largest-bus-id-timestamp-offset (car (car sorted-departure-schedule)))
+          (largest-bus-id (cdr (car sorted-departure-schedule))))
+      (let ((surely-after-timestamp-remainder (remainder surely-after-timestamp largest-bus-id))
+            (normalized-sorted-departure-schedule
+              (map
+               (lambda (x)
+                 (cons
+                   (- (car x) largest-bus-id-timestamp-offset)
+                   (cdr x)))
+               sorted-departure-schedule)))
+          (let ((last-timestamp-not-to-check (- surely-after-timestamp surely-after-timestamp-remainder))
+                (first-bus-id (cdr (car normalized-sorted-departure-schedule)))
+                (other-bus-schedules (cdr normalized-sorted-departure-schedule)))
             (define (has-orderly-departure timestamp)
               (every?
                 (lambda (bus-schedule)
@@ -121,7 +123,10 @@
             (-
               (stream-find
                 has-orderly-departure
-                (stream-multiples-of first-bus-id))
+                (stream-map
+                  (lambda (x)
+                    (+ last-timestamp-not-to-check x))
+                  (stream-multiples-of first-bus-id)))
               largest-bus-id-timestamp-offset))))))
 
 ; Executing solutions
@@ -129,12 +134,15 @@
 (display "Part 1:")
 (newline)
 (display
-  (answer-to-part-1
-    earliest-departure-time
-    (find-first-departure
-       earliest-departure-time
-       (bus-schedule-stream
-          bus-ids))))
+  (with-timings
+    (lambda ()
+      (answer-to-part-1
+        earliest-departure-time
+        (find-first-departure
+           earliest-departure-time
+           (bus-schedule-stream
+              bus-ids))))
+    write-timings))
 (newline)
 
 (newline)
@@ -144,6 +152,6 @@
   (with-timings
     (lambda ()
       (find-orderly-departure-timestamp
-        departure-schedule))
+        departure-schedule 100000000000000))
     write-timings))
 (newline)
