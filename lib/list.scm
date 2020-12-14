@@ -79,3 +79,10 @@
     (filter
       (lambda (x) (eq? el x))
       l)))
+
+(define (fill-till-length value len l)
+  (define (loop remaining-len built-list)
+    (if (<= remaining-len 0)
+      built-list
+      (loop (- remaining-len 1) (cons value built-list))))
+  (loop (- len (length l)) l))
