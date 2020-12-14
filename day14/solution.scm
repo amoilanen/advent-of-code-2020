@@ -54,7 +54,7 @@ mem[8] = 0
 (define (apply-mask value mask)
   (let ((binary-value
           (number->string
-            (string->number value)
+            (string->number value 10)
             2))
         (bits-number
           (string-length mask)))
@@ -90,19 +90,23 @@ mem[8] = 0
                      (current-instruction 'mask)
                      memory))
                 ((equal? current-instruction-code "mem")
-                   (evaluation-loop
-                     (cdr remaining-instructions)
-                     mask
-                     (cons
-                       (cons
-                         (current-instruction 'address)
-                         (apply-mask
-                           (current-instruction 'value)
-                           mask))
-                       memory)))
+                  (let ((address (current-instruction 'address))
+                        (value-to-store
+                          (apply-mask
+                            (current-instruction 'value)
+                            mask)))
+                    (evaluation-loop
+                      (cdr remaining-instructions)
+                      mask
+                      (cons
+                        (cons
+                          address
+                          value-to-store)
+                        memory))))
                 (else (error "Unknown instruction code" current-instruction-code)))))))
-  (alist->list
-    (evaluation-loop instructions initial-mask initial-memory)))
+  (let ((evaluation-result
+          (evaluation-loop instructions initial-mask initial-memory)))
+    (alist->list evaluation-result)))
 
 (define (part1-solution memory)
   (apply
