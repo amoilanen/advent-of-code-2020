@@ -2,13 +2,15 @@
 (load "./lib/stream.scm")
 (load "./lib/timings.scm")
 
-; For part 2 finding the t is equivalent to finding the smallest natural solution for the following system of linear equations 
-; and taking t = 7 * x_1
+; For part 2 we need to solve a system of modulo equations:
 ; 
-; 7 * x_1 + 1 = 13 * x_2
-; 7 * x_1 + 4 = 59 * x_3
-; 7 * x_1 + 6 = 31 * x_4
-; 7 * x_1 + 7 = 19 * x_5
+; x = (mod 7) 0
+; x = (mod 13) -1
+; x = (mod 59) -4
+; x = (mod 31) -6
+; x = (mod 19) -7
+;
+; where the bases of the modulo are prime numbers
 
 (define input-data "
 939
@@ -90,39 +92,30 @@
     (cadr first-departure)))
 
 (define (find-orderly-departure-timestamp departure-schedule)
+  (define (try-next-timestamp timestamp step remaining-bus-schedules)
+    (if (null? remaining-bus-schedules) timestamp
+      (let ((next-bus-schedule (car remaining-bus-schedules)))
+        (let ((departure-offset (car next-bus-schedule))
+              (bus-id (cdr next-bus-schedule)))
+          (if (equal?
+                (remainder
+                  (+ timestamp departure-offset)
+                  bus-id)
+                0)
+            (try-next-timestamp
+              timestamp
+              (* step bus-id)
+              (cdr remaining-bus-schedules))
+            (try-next-timestamp
+              (+ timestamp step)
+              step
+              remaining-bus-schedules))))))
   (let ((sorted-departure-schedule
           (sort
             departure-schedule
             (lambda (x y)
               (> (cdr x) (cdr y))))))
-    (let ((largest-bus-id-timestamp-offset (car (car sorted-departure-schedule))))
-      (let
-        ((normalized-sorted-departure-schedule
-           (map
-            (lambda (x)
-              (cons
-                (- (car x) largest-bus-id-timestamp-offset)
-                (cdr x)))
-            sorted-departure-schedule)))
-        normalized-sorted-departure-schedule
-          (let ((first-bus-id (cdr (car normalized-sorted-departure-schedule)))
-            (other-bus-schedules (cdr normalized-sorted-departure-schedule)))
-            (define (has-orderly-departure timestamp)
-              (every?
-                (lambda (bus-schedule)
-                  (let ((departure-offset (car bus-schedule))
-                        (bus-id (cdr bus-schedule)))
-                    (equal?
-                      (remainder
-                        (+ timestamp departure-offset)
-                        bus-id)
-                      0)))
-                other-bus-schedules))
-            (-
-              (stream-find
-                has-orderly-departure
-                (stream-multiples-of first-bus-id))
-              largest-bus-id-timestamp-offset))))))
+    (try-next-timestamp 1 1 sorted-departure-schedule)))
 
 ; Executing solutions
 (newline)
