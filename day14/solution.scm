@@ -3,10 +3,10 @@
 (load "./lib/parser.scm")
 
 (define input-data "
-mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X
-mem[8] = 11
-mem[7] = 101
-mem[8] = 0
+mask = 000000000000000000000000000000X1001X
+mem[42] = 100
+mask = 00000000000000000000000000000000X0XX
+mem[26] = 1
 ")
 
 ; Parser
@@ -65,7 +65,6 @@ mem[8] = 0
               (string->list binary-value)))
           (mask-bits
             (string->list mask)))
-      (string->number
         (list->string
           (map
             (lambda (x)
@@ -75,22 +74,65 @@ mem[8] = 0
             (zip
               binary-value-bits
               mask-bits)))
-        2))))
+        )))
 
 (define (ignore-mask-for-address value mask)
   (list value))
 
 (define (ignore-mask-for-value value mask)
-  value)
+  (string->number value 10))
 
 (define (apply-mask-to-value value mask)
-  (apply-mask
-    value
-    mask
-    apply-mask-bit-ignore-x))
+  (string->number
+    (apply-mask
+      value
+      mask
+      apply-mask-bit-ignore-x)
+    2))
+
+(define (apply-mask-to-address address mask)
+  (let ((address-with-floating-bits
+          (apply-mask
+            address
+            mask
+            apply-mask-bit-ignore-0)))
+    (all-addresses
+      address-with-floating-bits)))
+
+(define (all-addresses floating-bits-address)
+  (define (loop remaining-bits acc)
+    (if (null? remaining-bits) acc
+      (let ((next-bit (car remaining-bits)))
+        (let ((updated-acc
+                (if (equal? next-bit '#\X)
+                  (append
+                    (map
+                      (lambda (l)
+                        (cons '#\0 l))
+                      acc)
+                    (map
+                      (lambda (l)
+                        (cons '#\1 l))
+                      acc))
+                  (map
+                    (lambda (l)
+                        (cons next-bit l))
+                    acc)
+                )))
+          (loop (cdr remaining-bits) updated-acc)))))
+  (map
+    (lambda (l)
+      (list->string
+        (reverse l)))
+    (loop (string->list floating-bits-address) (list '()))))
 
 (define (apply-mask-bit-ignore-x value-bit mask-bit)
   (if (equal? mask-bit '#\X)
+    value-bit
+    mask-bit))
+
+(define (apply-mask-bit-ignore-0 value-bit mask-bit)
+  (if (equal? mask-bit '#\0)
     value-bit
     mask-bit))
 
@@ -129,7 +171,7 @@ mem[8] = 0
           (evaluation-loop instructions initial-mask initial-memory)))
     (alist->list evaluation-result)))
 
-(define (part1-solution memory)
+(define (sum-of-set-values memory)
   (apply
     +
     (map
@@ -149,11 +191,24 @@ mem[8] = 0
 (display "Part 1:")
 (newline)
 (display
-  (part1-solution
+  (sum-of-set-values
     (evaluate
       instructions
       mask
       apply-mask-to-value
       ignore-mask-for-address
+      '())))
+(newline)
+
+(newline)
+(display "Part 2:")
+(newline)
+(display
+  (sum-of-set-values
+    (evaluate
+      instructions
+      mask
+      ignore-mask-for-value
+      apply-mask-to-address
       '())))
 (newline)
