@@ -1,6 +1,7 @@
 (load "./lib/alist.scm")
 (load "./lib/list.scm")
 (load "./lib/parser.scm")
+(load "./lib/timings.scm")
 
 (define input-data "
 mask = 000000000000000000000000000000X1001X
@@ -73,11 +74,21 @@ mem[26] = 1
                 (apply-mask-bit value-bit mask-bit)))
             (zip
               binary-value-bits
-              mask-bits)))
-        )))
+              mask-bits))))))
 
 (define (ignore-mask-for-address value mask)
-  (list value))
+  (let ((bits-number
+          (string-length mask)))
+    (list->string
+      (fill-till-length
+        '#\0
+        bits-number
+        (string->list
+          (number->string
+            (string->number
+              value
+              10)
+            2))))))
 
 (define (ignore-mask-for-value value mask)
   (string->number value 10))
@@ -96,35 +107,7 @@ mem[26] = 1
             address
             mask
             apply-mask-bit-ignore-0)))
-    (all-addresses
-      address-with-floating-bits)))
-
-(define (all-addresses floating-bits-address)
-  (define (loop remaining-bits acc)
-    (if (null? remaining-bits) acc
-      (let ((next-bit (car remaining-bits)))
-        (let ((updated-acc
-                (if (equal? next-bit '#\X)
-                  (append
-                    (map
-                      (lambda (l)
-                        (cons '#\0 l))
-                      acc)
-                    (map
-                      (lambda (l)
-                        (cons '#\1 l))
-                      acc))
-                  (map
-                    (lambda (l)
-                        (cons next-bit l))
-                    acc)
-                )))
-          (loop (cdr remaining-bits) updated-acc)))))
-  (map
-    (lambda (l)
-      (list->string
-        (reverse l)))
-    (loop (string->list floating-bits-address) (list '()))))
+    address-with-floating-bits))
 
 (define (apply-mask-bit-ignore-x value-bit mask-bit)
   (if (equal? mask-bit '#\X)
@@ -151,33 +134,87 @@ mem[26] = 1
                           (value-mask-application
                             (current-instruction 'value)
                             mask))
-                        (addresses-to-store-value
+                        (address-to-store-value
                           (address-mask-application
                             (current-instruction 'address)
                             mask)))
                     (evaluation-loop
                       (cdr remaining-instructions)
                       mask
-                      (append
-                        (map
-                          (lambda (address)
-                            (cons
-                              address
-                              value-to-store))
-                          addresses-to-store-value)
+                      (cons
+                        (cons
+                          address-to-store-value
+                          value-to-store)
                         memory))))
                 (else (error "Unknown instruction code" current-instruction-code)))))))
   (let ((evaluation-result
           (evaluation-loop instructions initial-mask initial-memory)))
     (alist->list evaluation-result)))
 
+(define (address-combinations-count address)
+  (define (loop remaining-bits acc)
+    (cond ((null? remaining-bits) acc)
+          ((equal? (car remaining-bits) '#\X)
+            (loop (cdr remaining-bits) (* 2 acc)))
+          (else (loop (cdr remaining-bits) acc))))
+  (if (not address) 0
+    (loop (string->list address) 1)))
+
+(define (intersection-of-addresses first second)
+  (let ((first-bits (string->list first))
+        (second-bits (string->list second)))
+    (let ((intersection
+            (map
+              (lambda (p)
+                (let ((first-bit (car p))
+                      (second-bit (cadr p)))
+                  (cond ((equal? first-bit second-bit) first-bit)
+                        ((equal? first-bit '#\X) second-bit)
+                        ((equal? second-bit '#\X) first-bit)
+                        (else #f))))
+              (zip
+                first-bits
+                second-bits))))
+      (if (contains? #f intersection) #f
+        (list->string intersection)))))
+
 (define (sum-of-set-values memory)
-  (apply
-    +
-    (map
-      (lambda (x)
-        (cdr x))
-      memory)))
+  ;FIXME: The counting of weighted intersections is not mathematically correct and should be improved: use the inclusion/exclusion principle
+  ;https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle
+  (define (count-weighted-intersections address-to-intersect tail-of-remaining-memory)
+    (apply
+      +
+      (map
+        (lambda (tail-address-and-value)
+          (let ((tail-address (car tail-address-and-value))
+                (tail-value (cdr tail-address-and-value)))
+            (*
+              (address-combinations-count
+                (intersection-of-addresses
+                  address-to-intersect
+                  tail-address))
+              tail-value)))
+        tail-of-remaining-memory)))
+  (define (count-weighted-combinations remaining-memory acc)
+    (if (null? remaining-memory) acc
+      (let ((address (car (car remaining-memory)))
+            (value (cdr (car remaining-memory))))
+        (let ((acc-increment
+                (*
+                  (address-combinations-count address)
+                  value))
+              (acc-decrement
+                (count-weighted-intersections
+                  address
+                  (cdr remaining-memory))))
+          (count-weighted-combinations
+            (cdr remaining-memory)
+            (-
+              (+
+                acc
+                acc-increment)
+              acc-decrement))))))
+  (count-weighted-combinations memory 0))
 
 (define instructions
   (parse-instructions
@@ -191,24 +228,30 @@ mem[26] = 1
 (display "Part 1:")
 (newline)
 (display
-  (sum-of-set-values
-    (evaluate
-      instructions
-      mask
-      apply-mask-to-value
-      ignore-mask-for-address
-      '())))
+  (with-timings
+    (lambda ()
+      (sum-of-set-values
+        (evaluate
+          instructions
+          mask
+          apply-mask-to-value
+          ignore-mask-for-address
+          '())))
+    write-timings))
 (newline)
 
 (newline)
 (display "Part 2:")
 (newline)
 (display
-  (sum-of-set-values
-    (evaluate
-      instructions
-      mask
-      ignore-mask-for-value
-      apply-mask-to-address
-      '())))
+  (with-timings
+    (lambda ()
+      (sum-of-set-values
+        (evaluate
+          instructions
+          mask
+          ignore-mask-for-value
+          apply-mask-to-address
+          '())))
+    write-timings))
 (newline)
