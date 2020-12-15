@@ -51,7 +51,7 @@ mem[8] = 0
   dispatch)
 
 ; Solution
-(define (apply-mask value mask)
+(define (apply-mask value mask apply-mask-bit)
   (let ((binary-value
           (number->string
             (string->number value 10)
@@ -71,15 +71,30 @@ mem[8] = 0
             (lambda (x)
               (let ((value-bit (car x))
                     (mask-bit (cadr x)))
-                (if (equal? mask-bit '#\X)
-                  value-bit
-                  mask-bit)))
+                (apply-mask-bit value-bit mask-bit)))
             (zip
               binary-value-bits
               mask-bits)))
         2))))
 
-(define (evaluate instructions initial-mask initial-memory)
+(define (ignore-mask-for-address value mask)
+  (list value))
+
+(define (ignore-mask-for-value value mask)
+  value)
+
+(define (apply-mask-to-value value mask)
+  (apply-mask
+    value
+    mask
+    apply-mask-bit-ignore-x))
+
+(define (apply-mask-bit-ignore-x value-bit mask-bit)
+  (if (equal? mask-bit '#\X)
+    value-bit
+    mask-bit))
+
+(define (evaluate instructions initial-mask value-mask-application address-mask-application initial-memory)
   (define (evaluation-loop remaining-instructions mask memory)
     (if (null? remaining-instructions) memory
       (let ((current-instruction (car remaining-instructions)))
@@ -90,18 +105,24 @@ mem[8] = 0
                      (current-instruction 'mask)
                      memory))
                 ((equal? current-instruction-code "mem")
-                  (let ((address (current-instruction 'address))
-                        (value-to-store
-                          (apply-mask
+                  (let ((value-to-store
+                          (value-mask-application
                             (current-instruction 'value)
+                            mask))
+                        (addresses-to-store-value
+                          (address-mask-application
+                            (current-instruction 'address)
                             mask)))
                     (evaluation-loop
                       (cdr remaining-instructions)
                       mask
-                      (cons
-                        (cons
-                          address
-                          value-to-store)
+                      (append
+                        (map
+                          (lambda (address)
+                            (cons
+                              address
+                              value-to-store))
+                          addresses-to-store-value)
                         memory))))
                 (else (error "Unknown instruction code" current-instruction-code)))))))
   (let ((evaluation-result
@@ -132,5 +153,7 @@ mem[8] = 0
     (evaluate
       instructions
       mask
+      apply-mask-to-value
+      ignore-mask-for-address
       '())))
 (newline)
