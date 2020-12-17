@@ -178,43 +178,97 @@ mem[26] = 1
       (if (contains? #f intersection) #f
         (list->string intersection)))))
 
+; intersections:
+; (list (cons +1 "100X") (cons -1 "1110") (cons +1 "101"))
+(define (intersections-with-signs-count intersections)
+  (apply +
+    (map
+      (lambda (intersection)
+        (let ((sign (car intersection))
+              (address (cdr intersection)))
+          (*
+            sign
+            (address-combinations-count address))))
+      intersections)))
+
+; memory:
+;(list
+;  (list
+;    address
+;    value
+;    (list
+;      (cons +1 intersection-3)
+;      (cons -1 intersection-3)
+;      ...)) ...)
+; intersections-to-intersect-with:
+;  (list
+;      (cons +1 intersection-1)
+;      (cons -1 intersection-2))
+(define (intersect-remaining-memory-with-intersections memory intersections-to-intersect-with)
+  (map
+    (lambda (m)
+      (let ((address (car m))
+            (value (cadr m))
+            (intersections-with-signs (caddr m)))
+        (list
+          address
+          value
+          (filter
+            (lambda (i)
+              (cdr i)) ; filter out empty intersections
+            (append
+              intersections-with-signs
+              (map
+                (lambda (intersection)
+                  (let ((sign (car intersection))
+                        (intersection-address (cdr intersection)))
+                    (cons
+                      (* -1 sign)
+                      (intersection-of-addresses intersection-address address))))
+                intersections-to-intersect-with))))))
+    memory))
+
+
 (define (sum-of-set-values memory)
-  ;FIXME: The counting of weighted intersections is not mathematically correct and should be improved: use the inclusion/exclusion principle
-  ;https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle
-  (define (count-weighted-intersections address-to-intersect tail-of-remaining-memory)
-    (apply
-      +
-      (map
-        (lambda (tail-address-and-value)
-          (let ((tail-address (car tail-address-and-value))
-                (tail-value (cdr tail-address-and-value)))
-            (*
-              (address-combinations-count
-                (intersection-of-addresses
-                  address-to-intersect
-                  tail-address))
-              tail-value)))
-        tail-of-remaining-memory)))
+  ; remaining-memory:
+  ;(list
+  ;  (list
+  ;    address
+  ;    value
+  ;    (list
+  ;      (cons "+" intersection-1)
+  ;      (cons "-" intersection-2)
+  ;      ...)) ...)
   (define (count-weighted-combinations remaining-memory acc)
     (if (null? remaining-memory) acc
       (let ((address (car (car remaining-memory)))
-            (value (cdr (car remaining-memory))))
+            (value (cadr (car remaining-memory)))
+            (intersections-with-signs (caddr (car remaining-memory))))
         (let ((acc-increment
                 (*
                   (address-combinations-count address)
                   value))
-              (acc-decrement
-                (count-weighted-intersections
-                  address
-                  (cdr remaining-memory))))
+              (acc-increment-correction
+                (*
+                  (intersections-with-signs-count
+                    intersections-with-signs)
+                  value))
+              (updated-tail-of-remaining-memory
+                (intersect-remaining-memory-with-intersections
+                  (cdr remaining-memory)
+                  (cons (cons +1 address) intersections-with-signs))))
           (count-weighted-combinations
-            (cdr remaining-memory)
-            (-
-              (+
-                acc
-                acc-increment)
-              acc-decrement))))))
-  (count-weighted-combinations memory 0))
+            updated-tail-of-remaining-memory
+            (+
+              acc
+              acc-increment
+              acc-increment-correction))))))
+  (let ((memory-with-empty-intersection-lists
+         (map
+          (lambda (c)
+            (list (car c) (cdr c) '()))
+            memory)))
+  (count-weighted-combinations memory-with-empty-intersection-lists 0)))
 
 (define instructions
   (parse-instructions
@@ -255,3 +309,37 @@ mem[26] = 1
           '())))
     write-timings))
 (newline)
+
+;(define memory
+;  (list (cons "X01" 100) (cons "10X" 10) (cons "101" 1)))
+;(newline)
+;(display
+;  (sum-of-set-values memory)) ; // should be 210
+;(newline)
+;
+;(define memory
+;  (list (cons "X01" 100) (cons "X11" 10) (cons "0X0" 1)))
+;(newline)
+;(display
+;  (sum-of-set-values memory)) ; // should be 222
+;(newline)
+
+;(define intersections
+;  (list (cons +1 "X01") (cons -1 "X0X") (cons +1 "010")))
+;(newline)
+;(display
+;  (intersections-with-signs-count
+;    intersections)) ; // -1
+;(newline)
+;
+;(define intersections-to-intersect-with
+;  (list (cons 1 "XX10") (cons -1 "0X10")))
+;(define remaining-memory
+;  (list
+;    (list "XX1X" 3 (list (cons -1 "X010")))))
+;(newline)
+;(display
+;  (intersect-remaining-memory-with-intersections
+;    remaining-memory
+;    intersections-to-intersect-with)) ; (list "XX1X" 3 (list (cons -1 "X010") (cons -1 "XX10") (cons 1 "0X10")))
+;(newline)
