@@ -27,6 +27,13 @@
   (if (< index 0) (error "Index out of bounds" index list)
     (nth-loop index list)))
 
+(define (first-index-of x l)
+  (define (loop x l acc)
+    (cond ((null? l) #f)
+          ((equal? x (car l)) acc)
+          (else (loop x (cdr l) (+ 1 acc)))))
+  (loop x l 0))
+
 (define (range from to)
   (if (> from to) '()
     (cons from (range (+ 1 from) to))))
