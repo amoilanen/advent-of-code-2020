@@ -1,3 +1,6 @@
+; To run alocate 500Mb of heap memory:
+; scheme --heap 524288 --load day15/solution.scm
+
 (load "./lib/list.scm")
 (load "./lib/set.scm")
 (load "./lib/stream.scm")
@@ -17,32 +20,30 @@
 ; Solution
 (define (nth-play-number previous-numbers interested-in-nth)
   (define (elements-reversed-indexes l)
-    (define (to-hashtable remaining table)
-      (if (null? remaining) table
+    (define (to-vector remaining indices)
+      (if (null? remaining) indices
         (let ((first (car remaining)))
-          (hash-table-set! table (car first) (cadr first))
-          (to-hashtable (cdr remaining) table))))
+          (vector-set! indices (car first) (cadr first))
+          (to-vector (cdr remaining) indices))))
     (let ((list-of-elements-with-indices 
             (let ((indices (range 1 (length l))))
               (reverse
                 (zip
                   (reverse l)
                   indices)))))
-      (to-hashtable list-of-elements-with-indices (make-strong-eq-hash-table))))
-  ; Indices are 1-based rather than 0-based inside nth-play-number
-  ; to avoid adding/sibtracting one when matching with interested-in-nth
+      (to-vector list-of-elements-with-indices (make-vector (+ 1 interested-in-nth) ))))
+  ; Indices are 1-based rather than 0-based for convenience
   (define (loop current-number current-index indices-of-previous)
     (if (equal? current-index interested-in-nth) current-number
-      (let ((last-seen-current-number
-             (hash-table-ref
+      (let ((last-seen-index
+             (vector-ref
                indices-of-previous
-               current-number
-               (lambda () #f))))
+               current-number)))
         (let ((next-number
-                (if last-seen-current-number
-                  (- current-index last-seen-current-number)
+                (if last-seen-index
+                  (- current-index last-seen-index)
                   0)))
-          (hash-table-set! indices-of-previous current-number current-index)
+          (vector-set! indices-of-previous current-number current-index)
           (loop
             next-number
             (+ 1 current-index)
@@ -66,7 +67,7 @@
 (display
   (with-timings
     (lambda ()
-      (nth-play-number starting-numbers 2002))
+      (nth-play-number starting-numbers 2020))
     write-timings))
 (newline)
 
@@ -79,3 +80,15 @@
       (nth-play-number starting-numbers 30000000))
     write-timings))
 (newline)
+
+; Even using a pre-allocated array with Scheme seems to be much slower than using a language with access to more low level
+; data structures which are implemented very efficiently, such as JavaScript and arrays, Scheme is ~60 times slower:
+; https://gist.github.com/antivanov/16a4a74e5621466f7263796e350ff31b
+
+;Part 1:
+;0. 0. .002
+;234
+;
+;Part 2:
+;27.98 0. 28.029
+;8984
