@@ -1,7 +1,9 @@
 (load "./lib/list.scm")
 (load "./lib/parser.scm")
+(load "./lib/timings.scm")
 
-(define input-data "class: 1-3 or 5-7
+(define input-data "
+class: 1-3 or 5-7
 row: 6-11 or 33-44
 seat: 13-40 or 45-50
 
@@ -17,7 +19,7 @@ nearby tickets:
 
 ; Parser
 (define (parse-input input)
-  (let ((lines (split-list-by input '#\newline)))
+  (let ((lines (cdr (split-list-by input '#\newline))))
     (let ((input-sections (split-list-by lines '())))
       (make-ticket-notes
         (parse-ticket-rules
@@ -88,9 +90,17 @@ nearby tickets:
   dispatch)
 
 (define (make-rule field-name ranges)
+  (define (is-valid? value)
+    (some?
+      (lambda (range)
+        (and
+          (>= value (car range))
+          (<= value (cdr range))))
+      ranges))
   (define (dispatch op)
     (cond ((eq? op 'field-name) field-name)
           ((eq? op 'ranges) ranges)
+          ((eq? op 'is-valid?) is-valid?)
           ((eq? op 'as-list) (list field-name ranges))
           (else (error "Unsupported op for rule:" op))))
   dispatch)
@@ -100,6 +110,33 @@ nearby tickets:
 
 (define (make-ticket field-values)
   field-values)
+
+; Solution
+
+(define (is-valid-field-value? value rules)
+  (some?
+    (lambda (rule)
+      ((rule 'is-valid?) value))
+    rules))
+
+(define (select-invalid-fields ticket-notes)
+  (let ((rules (ticket-notes 'ticket-rules))
+        (all-field-values
+          (apply
+            append
+            (ticket-notes 'nearby-tickets))))
+    (filter
+      (lambda (field-value)
+        (not
+          (is-valid-field-value?
+            field-value
+            rules)))
+      all-field-values)))
+
+(define (solution-for-part-1 ticket-notes)
+  (apply
+    +
+    (select-invalid-fields ticket-notes)))
 
 ; Display the answers
 
@@ -111,14 +148,8 @@ nearby tickets:
 (display "Part 1:")
 (newline)
 (display
-  (map
-    (lambda (x)
-      (x 'as-list))
-    (ticket-notes 'ticket-rules)))
-(newline)
-(display
-  (ticket-notes 'your-ticket))
-(newline)
-(display
-  (ticket-notes 'nearby-tickets))
+  (with-timings
+    (lambda ()
+      (solution-for-part-1 ticket-notes))
+    write-timings))
 (newline)
