@@ -1,20 +1,20 @@
 (load "./lib/list.scm")
+(load "./lib/vector.scm")
 (load "./lib/parser.scm")
 (load "./lib/timings.scm")
 
 (define input-data "
-class: 1-3 or 5-7
-row: 6-11 or 33-44
-seat: 13-40 or 45-50
+class: 0-1 or 4-19
+row: 0-5 or 8-19
+seat: 0-13 or 16-19
 
 your ticket:
-7,1,14
+11,12,13
 
 nearby tickets:
-7,3,47
-40,4,50
-55,2,20
-38,6,12
+3,9,18
+15,1,5
+5,14,9
 ")
 
 ; Parser
@@ -138,6 +138,50 @@ nearby tickets:
     +
     (select-invalid-fields ticket-notes)))
 
+(define (is-valid-ticket? rules)
+  (lambda (ticket)
+    (every?
+      (lambda (field-value)
+        (is-valid-field-value? field-value rules))
+      ticket)))
+
+(define (only-valid-tickets tickets rules)
+  (filter
+    (is-valid-ticket? rules)
+    tickets))
+
+(define (ticket-field-values-to-columns tickets)
+  (define (update-column-values ticket-values current-index updated-columns)
+    (if (null? ticket-values) updated-columns
+      (update-column-values
+        (cdr ticket-values)
+        (+ 1 current-index)
+        (vector-set
+          updated-columns
+          current-index
+          (cons
+            (car ticket-values)
+            (vector-ref
+              updated-columns
+              current-index))))))
+  (define (ticket-loop remaining-tickets columns)
+    (if (null? remaining-tickets) columns
+      (ticket-loop
+        (cdr remaining-tickets)
+        (update-column-values
+          (car remaining-tickets)
+          0
+          columns))))
+  (let ((value-columns
+         (make-vector
+           (length
+             (car tickets))
+           '()))) 
+    (ticket-loop tickets value-columns)))
+
+; TODO: Determine the columns name mapping to the column index from the valid tickets
+; TODO: Display the answr from the fields of the current ticket
+
 ; Display the answers
 
 (define ticket-notes
@@ -153,3 +197,10 @@ nearby tickets:
       (solution-for-part-1 ticket-notes))
     write-timings))
 (newline)
+
+(newline)
+(display
+  (ticket-field-values-to-columns
+    (ticket-notes 'nearby-tickets)))
+(newline)
+
