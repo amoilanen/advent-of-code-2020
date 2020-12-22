@@ -177,16 +177,48 @@ nearby tickets:
            (length
              (car tickets))
            '()))) 
-    (ticket-loop tickets value-columns)))
+    (vector->list (ticket-loop tickets value-columns))))
 
-; TODO: Determine the columns name mapping to the column index from the valid tickets
-; TODO: Display the answr from the fields of the current ticket
+(define (find-possible-field-column-indexes field-value-columns rules)
+  (define (find-possible-indices rule)
+    (find-indexes-where
+      (lambda (column)
+        (every?
+          (lambda (field-value)
+            ((rule 'is-valid?) field-value))
+          column))
+      field-value-columns))
+  (define (loop remaining-rules fields-to-indexes)
+    (if (null? remaining-rules) fields-to-indexes
+      (let ((next-rule (car remaining-rules)))
+        (let ((found-index
+                (find-possible-indices next-rule)))
+          (loop
+            (cdr remaining-rules)
+            (cons
+              (cons
+                (next-rule 'field-name)
+                found-index)
+              fields-to-indexes))))))
+  (loop rules '()))
+
+; TODO: Determine the combination of the indexes for the rules that covers all the columns
+; TODO: Display the answer from the fields of the current ticket
 
 ; Display the answers
 
 (define ticket-notes
   (parse-input
     (string->list input-data)))
+
+(define ticket-rules
+  (ticket-notes 'ticket-rules))
+
+(define your-ticket
+  (ticket-notes 'your-ticket))
+
+(define nearby-tickets
+  (ticket-notes 'nearby-tickets))
 
 (newline)
 (display "Part 1:")
@@ -198,9 +230,14 @@ nearby tickets:
     write-timings))
 (newline)
 
+; ((row . 0) (class . 1) (seat . 2))
 (newline)
 (display
-  (ticket-field-values-to-columns
-    (ticket-notes 'nearby-tickets)))
+  (find-possible-field-column-indexes
+    (ticket-field-values-to-columns
+      (only-valid-tickets
+        nearby-tickets
+        ticket-rules))
+    ticket-rules))
 (newline)
 
