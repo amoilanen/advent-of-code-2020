@@ -234,7 +234,22 @@ nearby tickets:
       field-possible-indexes)
     (combinations field-possible-indexes '())))
 
-; TODO: Display the answer from the fields of the current ticket
+(define (solution-for-part-2 found-field-indexes your-ticket)
+  (let ((ticket-fields
+          (list->vector your-ticket))
+        (interested-in-indexes
+          (map
+            cadr
+            (filter
+              (lambda (f)
+                (substring? "departure" (car f)))
+              found-field-indexes))))
+    (let ((your-ticket-departure-fields
+            (map
+              (lambda (index)
+                (vector-ref ticket-fields index))
+              interested-in-indexes)))
+      (apply * your-ticket-departure-fields))))
 
 ; Display the answers
 
@@ -264,14 +279,21 @@ nearby tickets:
 ; ((row . 0) (class . 1) (seat . 2))
 (newline)
 (display "Part 2:")
-(newline)
-(display
-  (find-combination-of-indexes 
-    (find-possible-field-column-indexes
-      (ticket-field-values-to-columns
-        (only-valid-tickets
-          nearby-tickets
-          ticket-rules))
-      ticket-rules)))
-(newline)
+(with-timings
+  (lambda ()
+    (define found-field-indexes
+      (find-combination-of-indexes 
+        (find-possible-field-column-indexes
+          (ticket-field-values-to-columns
+            (only-valid-tickets
+              nearby-tickets
+              ticket-rules))
+          ticket-rules)))
+    (newline)
+    (display
+      (solution-for-part-2
+        found-field-indexes
+        your-ticket))
+    (newline))
+  write-timings)
 
