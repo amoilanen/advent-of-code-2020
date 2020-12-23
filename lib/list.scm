@@ -14,6 +14,24 @@
 (define (split-list-by l el)
   (split-list-by-list l (list el)))
 
+(define (list-subtract l to-subtract)
+  (define (loop remaining-elements acc)
+    (cond ((null? remaining-elements) acc)
+          ((contains?
+             (car remaining-elements)
+             to-subtract) 
+           (loop
+             (cdr remaining-elements)
+             acc))
+          (else
+            (loop
+              (cdr remaining-elements)
+              (cons
+                (car remaining-elements)
+                acc)))))
+  (reverse
+    (loop l '())))
+
 (define (omit-empty l)
   (filter
     (lambda (p) (> (length p) 0))

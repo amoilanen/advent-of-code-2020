@@ -200,9 +200,40 @@ nearby tickets:
                 (next-rule 'field-name)
                 found-index)
               fields-to-indexes))))))
-  (loop rules '()))
+  (sort
+    (loop rules '())
+    (lambda (x y)
+      (<
+        (length (cdr x))
+        (length (cdr y))))))
 
-; TODO: Determine the combination of the indexes for the rules that covers all the columns
+(define (find-combination-of-indexes field-possible-indexes)
+  (define (combinations remaining-fields already-selected-indexes)
+    (if (null? remaining-fields) already-selected-indexes
+      (let ((next-field
+              (car remaining-fields))
+            (yet-remaining-fields
+              (cdr remaining-fields)))
+        (let ((not-yet-selected-indexes-for-next-field
+                (list-subtract
+                  (cdr next-field)
+                  already-selected-indexes)))
+          (apply
+            append
+            (map
+              (lambda (next-field-index)
+                (combinations
+                  yet-remaining-fields
+                  (append
+                    already-selected-indexes
+                    (list next-field-index))))
+              not-yet-selected-indexes-for-next-field))))))
+  (zip
+    (map
+      car
+      field-possible-indexes)
+    (combinations field-possible-indexes '())))
+
 ; TODO: Display the answer from the fields of the current ticket
 
 ; Display the answers
@@ -232,12 +263,15 @@ nearby tickets:
 
 ; ((row . 0) (class . 1) (seat . 2))
 (newline)
+(display "Part 2:")
+(newline)
 (display
-  (find-possible-field-column-indexes
-    (ticket-field-values-to-columns
-      (only-valid-tickets
-        nearby-tickets
-        ticket-rules))
-    ticket-rules))
+  (find-combination-of-indexes 
+    (find-possible-field-column-indexes
+      (ticket-field-values-to-columns
+        (only-valid-tickets
+          nearby-tickets
+          ticket-rules))
+      ticket-rules)))
 (newline)
 
