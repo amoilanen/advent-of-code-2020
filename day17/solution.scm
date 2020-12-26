@@ -41,6 +41,53 @@
       (>= layer-idx 0)))
   (define as-list
     layers-list)
+  ; extends grid by one cell in every direction
+  (define (extend)
+    (define (extend-layers layers-list)
+      (define (new-layer)
+        (make-list
+          (+ 2 row-number)
+          (make-list
+            (+ 2 column-number)
+            0)))
+      (append
+        (cons
+          (new-layer)
+          layers-list)
+        (list (new-layer))))
+    (define (extend-rows layers-list)
+      (define (new-row)
+         (make-list (+ 2 column-number) 0))
+      (map
+        (lambda (layer)
+          (append
+            (cons
+              (new-row)
+              layer)
+            (list (new-row))))
+        layers-list))
+    (define (extend-columns layers-list)
+      (define new-column 0)
+      (map
+        (lambda (layer)
+          (map
+            (lambda (row)
+              (append (cons new-column row) (list new-column)))
+            layer))
+        layers-list))
+    (let ((updated-center
+            (map
+              (lambda (x)
+                (+ x 1))
+              center-row-idx-column-idx-layer-idx))
+          (extended-layers-list
+            (extend-layers
+              (extend-rows
+                (extend-columns
+                  layers-list)))))
+          (make-grid
+            extended-layers-list
+            updated-center)))
   (define (element-at row-idx column-idx layer-idx)
     (if (are-valid-cell-coordinates row-idx column-idx layer-idx)
       (let ((layer (vector-ref layers layer-idx)))
@@ -78,6 +125,7 @@
         layers-list)))
   (define (dispatch op)
     (cond ((eq? op 'show-grid) (show-grid))
+          ((eq? op 'extend) (extend))
           ((eq? op 'layers) layers)
           ((eq? op 'element-at) element-at)
           ((eq? op 'layer-number) layer-number)
@@ -171,11 +219,6 @@
 ;          column-indexes))
 ;      row-indexes)))
 
-; TODO: When updating the grid first:
-; - extend layers by one empty layer at the start and end
-; - every layer with one row at the start and end
-; - every row with one element at the start and end
-
 ; TODO: Update the grid according to the cube activation rules
 
 ; TODO: Filter out after update:
@@ -183,6 +226,7 @@
 ; - empty side row-wise
 ; - empty side column-wise
 
+; TODO: Run the update cycle 3 times, verify that the results are as expected
 ; TODO: Run the update cycle 6 times, display the result
 ; TODO: Count the number of active cubes after running the cycle 6 times, display the result
 
@@ -196,5 +240,5 @@
     (list 0 0 0)))
 
 (newline)
-(initial-grid 'show-grid)
+((initial-grid 'extend) 'show-grid)
 (newline)
