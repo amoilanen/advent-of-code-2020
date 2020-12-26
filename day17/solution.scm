@@ -1,3 +1,4 @@
+(load "./lib/identity.scm")
 (load "./lib/list.scm")
 
 (define input-data "
@@ -117,7 +118,11 @@
           (newline)
           (map
             (lambda (row)
-              (display row)
+              (display
+                (map
+                  (lambda (v)
+                    (if (= v 1) '#\# '#\.))
+                  row))
               (newline))
             layer)))
       (zip
@@ -127,6 +132,7 @@
     (cond ((eq? op 'show-grid) (show-grid))
           ((eq? op 'extend) (extend))
           ((eq? op 'layers) layers)
+          ((eq? op 'center) center-row-idx-column-idx-layer-idx)
           ((eq? op 'element-at) element-at)
           ((eq? op 'layer-number) layer-number)
           ((eq? op 'row-number) row-number)
@@ -135,11 +141,11 @@
   dispatch)
 
 ; Solution
-(define (immediately-adjacent-value row-idx column-idx layer-idx row-dir column-dir layer-dir matrix)
+(define (immediately-adjacent-value row-idx column-idx layer-idx row-dir column-dir layer-dir grid)
   (let ((adjacent-row-idx (+ row-idx row-dir))
         (adjacent-column-idx (+ column-idx column-dir))
         (adjacent-layer-idx (+ layer-idx layer-dir)))
-    ((matrix 'element-at) adjacent-row-idx adjacent-column-idx adjacent-layer-idx)))
+    ((grid 'element-at) adjacent-row-idx adjacent-column-idx adjacent-layer-idx)))
 
 (define adjacent-directions
   (list
@@ -185,44 +191,48 @@
           grid))
       adjacent-directions)))
 
-; TODO: Update the code from task 11 for the task 17
-;(define (updated-value-at row-idx column-idx matrix)
-;  (let ((current-value
-;           ((matrix 'element-at) row-idx column-idx))
-;        (adjacent-occupied-count
-;           (count-of
-;              occupied-seat
-;              (adjacent-values row-idx column-idx matrix))))
-;    (cond ((and
-;              (equal? current-value empty-seat)
-;              (equal? 0 adjacent-occupied-count))
-;            occupied-seat)
-;          ((and
-;              (equal? current-value occupied-seat)
-;              (>= adjacent-occupied-count seated-tolerance))
-;            empty-seat)
-;          (else current-value))))
-;
-;(define (update-matrix seated-tolerance matrix)
-;  (define row-indexes (range 0 (- (matrix 'row-number) 1)))
-;  (define column-indexes (range 0 (- (matrix 'column-number) 1)))
-;  (make-matrix
-;    (map
-;      (lambda (row-index)
-;        (map
-;          (lambda (column-index)
-;            (updated-value-at
-;              row-index
-;              column-index
-;              seated-tolerance
-;              matrix))
-;          column-indexes))
-;      row-indexes)))
+(define (updated-value-at row-idx column-idx layer-idx grid)
+  (let ((current-value
+           ((grid 'element-at) row-idx column-idx layer-idx))
+        (adjacent-active-count
+           (apply
+             +
+             (adjacent-values row-idx column-idx layer-idx grid))))
+    (cond ((and
+              (= current-value 0)
+              (= adjacent-active-count 3))
+            1)
+          ((and
+              (= current-value 1)
+              (or 
+                (< adjacent-active-count 2)
+                (> adjacent-active-count 3)))
+            0)
+          (else current-value))))
 
-; TODO: Update the grid according to the cube activation rules
+(define (update-grid grid)
+  (define layer-indexes (range 0 (- (grid 'layer-number) 1)))
+  (define row-indexes (range 0 (- (grid 'row-number) 1)))
+  (define column-indexes (range 0 (- (grid 'column-number) 1)))
+  (make-grid
+    (map
+      (lambda (layer-index)
+        (map
+          (lambda (row-index)
+            (map
+              (lambda (column-index)
+                (updated-value-at
+                  row-index
+                  column-index
+                  layer-index
+                  grid))
+              column-indexes))
+          row-indexes))
+      layer-indexes)
+    (grid 'center)))
 
 ; TODO: Filter out after update:
-; - empty layers from the results
+; - empty edge layers from the results
 ; - empty side row-wise
 ; - empty side column-wise
 
@@ -240,5 +250,8 @@
     (list 0 0 0)))
 
 (newline)
-((initial-grid 'extend) 'show-grid)
+(define updated-grid
+  (update-grid
+    (initial-grid 'extend)))
+(updated-grid 'show-grid)
 (newline)
