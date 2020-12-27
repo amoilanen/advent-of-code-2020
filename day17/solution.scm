@@ -217,8 +217,28 @@
             extended-layers-list
             updated-center))))
 
-(define (slice-grid layer row column layers-list)
-  ())
+(define (slice-grid layer-idx row-idx column-idx layers-list)
+  (map
+    (lambda (layer)
+      (map
+        (lambda (row)
+          (if (= column-idx -1)
+            (vector->list row)
+            (list (vector-ref row column-idx))))
+        (if (= row-idx -1)
+          (vector->list layer)
+          (list (vector-ref layer row-idx)))))
+    (if (= layer-idx -1)
+      (vector->list layers-list)
+      (list (vector-ref layers-list layer-idx)))))
+
+(define (is-inactive-grid-slice? grid-slice)
+  (every?
+    (lambda (x)
+      (= x 0))
+    (apply append
+      (apply append
+        grid-slice))))
 
 (define (remove-empty-layer-sides layers-list)
   layers-list
@@ -273,9 +293,30 @@
           input-data)))
     (list 0 0 0)))
 
-(newline)
 (define updated-grid
   (update-grid
     initial-grid))
+
+(newline)
 (updated-grid 'show-grid)
+(newline)
+
+(newline)
+(display
+  (is-inactive-grid-slice?
+    (slice-grid
+      0
+      -1
+      -1
+      (updated-grid 'layers))))
+(newline)
+
+(newline)
+(display
+  (is-inactive-grid-slice?
+    (slice-grid
+      -1
+      -1
+      0
+      (updated-grid 'layers))))
 (newline)
