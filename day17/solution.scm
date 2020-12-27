@@ -42,53 +42,6 @@
       (>= layer-idx 0)))
   (define as-list
     layers-list)
-  ; extends grid by one cell in every direction
-  (define (extend)
-    (define (extend-layers layers-list)
-      (define (new-layer)
-        (make-list
-          (+ 2 row-number)
-          (make-list
-            (+ 2 column-number)
-            0)))
-      (append
-        (cons
-          (new-layer)
-          layers-list)
-        (list (new-layer))))
-    (define (extend-rows layers-list)
-      (define (new-row)
-         (make-list (+ 2 column-number) 0))
-      (map
-        (lambda (layer)
-          (append
-            (cons
-              (new-row)
-              layer)
-            (list (new-row))))
-        layers-list))
-    (define (extend-columns layers-list)
-      (define new-column 0)
-      (map
-        (lambda (layer)
-          (map
-            (lambda (row)
-              (append (cons new-column row) (list new-column)))
-            layer))
-        layers-list))
-    (let ((updated-center
-            (map
-              (lambda (x)
-                (+ x 1))
-              center-row-idx-column-idx-layer-idx))
-          (extended-layers-list
-            (extend-layers
-              (extend-rows
-                (extend-columns
-                  layers-list)))))
-          (make-grid
-            extended-layers-list
-            updated-center)))
   (define (element-at row-idx column-idx layer-idx)
     (if (are-valid-cell-coordinates row-idx column-idx layer-idx)
       (let ((layer (vector-ref layers layer-idx)))
@@ -132,6 +85,7 @@
     (cond ((eq? op 'show-grid) (show-grid))
           ((eq? op 'extend) (extend))
           ((eq? op 'layers) layers)
+          ((eq? op 'layers-list) layers-list)
           ((eq? op 'center) center-row-idx-column-idx-layer-idx)
           ((eq? op 'element-at) element-at)
           ((eq? op 'layer-number) layer-number)
@@ -210,26 +164,96 @@
             0)
           (else current-value))))
 
-(define (update-grid grid)
-  (define layer-indexes (range 0 (- (grid 'layer-number) 1)))
-  (define row-indexes (range 0 (- (grid 'row-number) 1)))
-  (define column-indexes (range 0 (- (grid 'column-number) 1)))
-  (make-grid
-    (map
-      (lambda (layer-index)
-        (map
-          (lambda (row-index)
+; extends grid by one cell in every direction
+(define (extend grid)
+  (let ((center (grid 'center))
+        (layers-list (grid 'layers-list))
+        (layer-number (grid 'layer-number))
+        (row-number (grid 'row-number))
+        (column-number (grid 'column-number)))
+    (define (extend-layers layers-list)
+      (define (new-layer)
+        (make-list
+          (+ 2 row-number)
+          (make-list
+            (+ 2 column-number)
+            0)))
+      (append
+        (cons
+          (new-layer)
+          layers-list)
+        (list (new-layer))))
+    (define (extend-rows layers-list)
+      (define (new-row)
+         (make-list (+ 2 column-number) 0))
+      (map
+        (lambda (layer)
+          (append
+            (cons
+              (new-row)
+              layer)
+            (list (new-row))))
+        layers-list))
+    (define (extend-columns layers-list)
+      (define new-column 0)
+      (map
+        (lambda (layer)
+          (map
+            (lambda (row)
+              (append (cons new-column row) (list new-column)))
+            layer))
+        layers-list))
+    (let ((updated-center
             (map
-              (lambda (column-index)
-                (updated-value-at
-                  row-index
-                  column-index
-                  layer-index
-                  grid))
-              column-indexes))
-          row-indexes))
-      layer-indexes)
-    (grid 'center)))
+              (lambda (x)
+                (+ x 1))
+              center))
+          (extended-layers-list
+            (extend-layers
+              (extend-rows
+                (extend-columns
+                  layers-list)))))
+          (make-grid
+            extended-layers-list
+            updated-center))))
+
+(define (slice-grid layer row column layers-list)
+  ())
+
+(define (remove-empty-layer-sides layers-list)
+  layers-list
+)
+
+(define (remove-empty-row-sides layers-list)
+  layers-list
+)
+
+(define (remove-empty-column-sides layers-list)
+  layers-list
+)
+
+(define (update-grid grid)
+  (let ((extended-grid
+          (extend grid)))
+    (define layer-indexes (range 0 (- (extended-grid 'layer-number) 1)))
+    (define row-indexes (range 0 (- (extended-grid 'row-number) 1)))
+    (define column-indexes (range 0 (- (extended-grid 'column-number) 1)))
+    (make-grid
+      (map
+        (lambda (layer-index)
+          (map
+            (lambda (row-index)
+              (map
+                (lambda (column-index)
+                  (updated-value-at
+                    row-index
+                    column-index
+                    layer-index
+                    extended-grid))
+                column-indexes))
+            row-indexes))
+        layer-indexes)
+      (extended-grid 'center))))
 
 ; TODO: Filter out after update:
 ; - empty edge layers from the results
@@ -252,6 +276,6 @@
 (newline)
 (define updated-grid
   (update-grid
-    (initial-grid 'extend)))
+    initial-grid))
 (updated-grid 'show-grid)
 (newline)
