@@ -240,6 +240,11 @@
       (apply append
         grid-slice))))
 
+(define (omit-grid-slice layer-idx row-idx column-idx layers-list)
+  ;TODO: Implement
+  ()
+)
+
 (define (remove-empty-layer-sides layers-list)
   layers-list
 )
