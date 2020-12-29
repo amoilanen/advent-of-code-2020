@@ -1,5 +1,6 @@
 (load "./lib/identity.scm")
 (load "./lib/list.scm")
+(load "./lib/vector.scm")
 
 (define input-data "
 .#.
@@ -22,6 +23,18 @@
     input))
 
 ; Grid
+(define (make-grid-from-layers-vector layers center-row-idx-column-idx-layer-idx)
+  (define layers-list
+    (vector->list
+      (vector-map
+        (lambda (rows)
+          (vector->list
+            (vector-map
+              vector->list
+              rows)))
+        layers)))
+  (make-grid layers-list center-row-idx-column-idx-layer-idx))
+
 (define (make-grid layers-list center-row-idx-column-idx-layer-idx)
   (define layers
     (list->vector
@@ -217,33 +230,43 @@
             extended-layers-list
             updated-center))))
 
-(define (slice-grid layer-idx row-idx column-idx layers-list)
-  (map
+(define (slice-grid layer-idx row-idx column-idx layers)
+  (vector-map
     (lambda (layer)
-      (map
+      (vector-map
         (lambda (row)
           (if (= column-idx -1)
-            (vector->list row)
-            (list (vector-ref row column-idx))))
+            row
+            (vector (vector-ref row column-idx))))
         (if (= row-idx -1)
-          (vector->list layer)
-          (list (vector-ref layer row-idx)))))
+          layer
+          (vector (vector-ref layer row-idx)))))
     (if (= layer-idx -1)
-      (vector->list layers-list)
-      (list (vector-ref layers-list layer-idx)))))
+      layers
+      (vector (vector-ref layers layer-idx)))))
+
+(define (omit-grid-slice layer-idx row-idx column-idx layers)
+  (vector-map
+    (lambda (layer)
+      (vector-map
+        (lambda (row)
+          (if (= column-idx -1)
+            row
+            (vector-omit-index row column-idx)))
+        (if (= row-idx -1)
+          layer
+          (vector-omit-index layer row-idx))))
+    (if (= layer-idx -1)
+      layers
+      (vector-omit-index layers layer-idx))))
 
 (define (is-inactive-grid-slice? grid-slice)
-  (every?
+  (vector-every
     (lambda (x)
       (= x 0))
-    (apply append
-      (apply append
-        grid-slice))))
-
-(define (omit-grid-slice layer-idx row-idx column-idx layers-list)
-  ;TODO: Implement
-  ()
-)
+    (vector-apply vector-append
+      (vector-apply vector-append
+          grid-slice))))
 
 (define (remove-empty-layer-sides layers-list)
   layers-list
@@ -307,21 +330,21 @@
 (newline)
 
 (newline)
-(display
-  (is-inactive-grid-slice?
-    (slice-grid
+((make-grid-from-layers-vector
+    (omit-grid-slice
       0
       -1
       -1
-      (updated-grid 'layers))))
+      (updated-grid 'layers))
+    (list 0 0 0)) 'show-grid)
 (newline)
 
 (newline)
-(display
-  (is-inactive-grid-slice?
-    (slice-grid
+((make-grid-from-layers-vector
+    (omit-grid-slice
       -1
       -1
       0
-      (updated-grid 'layers))))
+      (updated-grid 'layers))
+    (list 0 0 0)) 'show-grid)
 (newline)
