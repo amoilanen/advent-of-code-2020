@@ -230,35 +230,32 @@
             extended-layers-list
             updated-center))))
 
-(define (slice-grid layer-idx row-idx column-idx layers)
+(define (apply-grid-modification layer-idx row-idx column-idx modification layers)
   (vector-map
     (lambda (layer)
       (vector-map
         (lambda (row)
           (if (= column-idx -1)
             row
-            (vector (vector-ref row column-idx))))
+            (modification row column-idx)))
         (if (= row-idx -1)
           layer
-          (vector (vector-ref layer row-idx)))))
+          (modification layer row-idx))))
     (if (= layer-idx -1)
       layers
-      (vector (vector-ref layers layer-idx)))))
+      (modification layers layer-idx))))
+
+(define (slice-grid layer-idx row-idx column-idx layers)
+  (apply-grid-modification layer-idx row-idx column-idx
+    (lambda (grid-part idx)
+      (vector (vector-ref grid-part idx)))
+    layers))
 
 (define (omit-grid-slice layer-idx row-idx column-idx layers)
-  (vector-map
-    (lambda (layer)
-      (vector-map
-        (lambda (row)
-          (if (= column-idx -1)
-            row
-            (vector-omit-index row column-idx)))
-        (if (= row-idx -1)
-          layer
-          (vector-omit-index layer row-idx))))
-    (if (= layer-idx -1)
-      layers
-      (vector-omit-index layers layer-idx))))
+  (apply-grid-modification layer-idx row-idx column-idx
+    (lambda (grid-part idx)
+      (vector-omit-index grid-part idx))
+    layers))
 
 (define (is-inactive-grid-slice? grid-slice)
   (vector-every
@@ -327,6 +324,24 @@
 
 (newline)
 (updated-grid 'show-grid)
+(newline)
+
+(newline)
+(display
+  (slice-grid
+    0
+    -1
+    -1
+    (updated-grid 'layers)))
+(newline)
+
+(newline)
+(display
+  (slice-grid
+    -1
+    -1
+    0
+    (updated-grid 'layers)))
 (newline)
 
 (newline)
