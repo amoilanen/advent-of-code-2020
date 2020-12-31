@@ -23,7 +23,7 @@
     input))
 
 ; Grid
-(define (make-grid-from-layers-vector layers center-row-idx-column-idx-layer-idx)
+(define (make-grid-from-layers-vector layers left-top-row-column-layer-indices)
   (define layers-list
     (vector->list
       (vector-map
@@ -33,9 +33,9 @@
               vector->list
               rows)))
         layers)))
-  (make-grid layers-list center-row-idx-column-idx-layer-idx))
+  (make-grid layers-list left-top-row-column-layer-indices))
 
-(define (make-grid layers-list center-row-idx-column-idx-layer-idx)
+(define (make-grid layers-list left-top-row-column-layer-indices)
   (define layers
     (list->vector
       (map
@@ -74,13 +74,16 @@
            (vector-ref layers 0)
            0))))
   (define (show-grid)
+    (display "left-top=")
+    (display left-top-row-column-layer-indices)
+    (newline)
     (map
       (lambda (layer-with-index)
-        (let ((center-layer-idx (caddr center-row-idx-column-idx-layer-idx))
+        (let ((initial-layer-idx (caddr left-top-row-column-layer-indices))
               (layer-idx (car layer-with-index))
               (layer (cadr layer-with-index)))
           (display "z=")
-          (display (- layer-idx center-layer-idx))
+          (display (- layer-idx initial-layer-idx))
           (newline)
           (map
             (lambda (row)
@@ -99,7 +102,7 @@
           ((eq? op 'extend) (extend))
           ((eq? op 'layers) layers)
           ((eq? op 'layers-list) layers-list)
-          ((eq? op 'center) center-row-idx-column-idx-layer-idx)
+          ((eq? op 'left-top) left-top-row-column-layer-indices)
           ((eq? op 'element-at) element-at)
           ((eq? op 'layer-number) layer-number)
           ((eq? op 'row-number) row-number)
@@ -179,7 +182,7 @@
 
 ; extends grid by one cell in every direction
 (define (extend grid)
-  (let ((center (grid 'center))
+  (let ((grid-left-top (grid 'left-top))
         (layers-list (grid 'layers-list))
         (layer-number (grid 'layer-number))
         (row-number (grid 'row-number))
@@ -216,11 +219,11 @@
               (append (cons new-column row) (list new-column)))
             layer))
         layers-list))
-    (let ((updated-center
+    (let ((updated-left-top
             (map
               (lambda (x)
                 (+ x 1))
-              center))
+              grid-left-top))
           (extended-layers-list
             (extend-layers
               (extend-rows
@@ -228,7 +231,7 @@
                   layers-list)))))
           (make-grid
             extended-layers-list
-            updated-center))))
+            updated-left-top))))
 
 (define (apply-grid-modification layer-idx row-idx column-idx modification layers)
   (vector-map
@@ -265,6 +268,9 @@
       (vector-apply vector-append
           grid-slice))))
 
+(define (remove-empty-sides grid)
+  (remove-empty-side-slices grid))
+
 (define (remove-empty-layer-sides layers-list)
   layers-list
 )
@@ -273,32 +279,81 @@
   layers-list
 )
 
-(define (remove-empty-column-sides layers-list)
-  layers-list
-)
+(define (remove-empty-column-sides grid)
+  grid)
 
+; TODO: Currently only omits empty side slices for columns, make more universal/reusable
+(define (remove-empty-side-slices grid)
+  (let ((layers (grid 'layers))
+        (last-slice-index
+          (-
+            (grid 'column-number)
+            1))
+        (left-top (grid 'left-top)))
+    (let ((first-slice
+            (slice-grid
+              -1
+              -1
+              0
+              layers))
+          (last-slice
+            (slice-grid
+              -1
+              -1
+              last-slice-index
+              layers)))
+      (let ((is-first-slice-inactive (is-inactive-grid-slice? first-slice))
+            (is-last-slice-inactive (is-inactive-grid-slice? last-slice)))
+        (let ((last-slice-handled
+                (if (is-inactive-grid-slice? last-slice)
+                  (make-grid-from-layers-vector
+                    (omit-grid-slice
+                      -1
+                      -1
+                      last-slice-index
+                      layers)
+                    left-top)
+                  grid)))
+          (let ((first-and-last-slice-handled
+                  (if (is-inactive-grid-slice? first-slice)
+                    (make-grid-from-layers-vector
+                      (omit-grid-slice
+                        -1
+                        -1
+                        0
+                        (last-slice-handled 'layers))
+                      (list
+                        (car left-top)
+                        (cadr left-top)
+                        (- (caddr left-top) 1)))
+                    last-slice-handled)))
+            (if (or is-first-slice-inactive is-last-slice-inactive)
+              (remove-empty-side-slices first-and-last-slice-handled)
+              grid)))))))
+  
 (define (update-grid grid)
   (let ((extended-grid
           (extend grid)))
     (define layer-indexes (range 0 (- (extended-grid 'layer-number) 1)))
     (define row-indexes (range 0 (- (extended-grid 'row-number) 1)))
     (define column-indexes (range 0 (- (extended-grid 'column-number) 1)))
-    (make-grid
-      (map
-        (lambda (layer-index)
-          (map
-            (lambda (row-index)
-              (map
-                (lambda (column-index)
-                  (updated-value-at
-                    row-index
-                    column-index
-                    layer-index
-                    extended-grid))
-                column-indexes))
-            row-indexes))
-        layer-indexes)
-      (extended-grid 'center))))
+    (remove-empty-sides
+      (make-grid
+        (map
+          (lambda (layer-index)
+            (map
+              (lambda (row-index)
+                (map
+                  (lambda (column-index)
+                    (updated-value-at
+                      row-index
+                      column-index
+                      layer-index
+                      extended-grid))
+                  column-indexes))
+              row-indexes))
+          layer-indexes)
+        (extended-grid 'left-top)))))
 
 ; TODO: Filter out after update:
 ; - empty edge layers from the results
@@ -324,42 +379,4 @@
 
 (newline)
 (updated-grid 'show-grid)
-(newline)
-
-(newline)
-(display
-  (slice-grid
-    0
-    -1
-    -1
-    (updated-grid 'layers)))
-(newline)
-
-(newline)
-(display
-  (slice-grid
-    -1
-    -1
-    0
-    (updated-grid 'layers)))
-(newline)
-
-(newline)
-((make-grid-from-layers-vector
-    (omit-grid-slice
-      0
-      -1
-      -1
-      (updated-grid 'layers))
-    (list 0 0 0)) 'show-grid)
-(newline)
-
-(newline)
-((make-grid-from-layers-vector
-    (omit-grid-slice
-      -1
-      -1
-      0
-      (updated-grid 'layers))
-    (list 0 0 0)) 'show-grid)
 (newline)
