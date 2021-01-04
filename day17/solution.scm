@@ -1,6 +1,7 @@
 (load "./lib/identity.scm")
 (load "./lib/list.scm")
 (load "./lib/vector.scm")
+(load "./lib/timings.scm")
 
 (define input-data "
 .#.
@@ -117,34 +118,36 @@
         (adjacent-column-idx (+ column-idx column-dir)))
     ((grid 'element-at) adjacent-layer-idx adjacent-row-idx adjacent-column-idx)))
 
+(define (compute-adjacent-directions dimensions-number)
+  (let ((possible-directions
+          (list -1 0 1))
+        (combination-of-zeros
+          (make-list dimensions-number 0)))
+    (define (loop remaining-dimensions acc)
+      (if (= remaining-dimensions 0) acc
+        (let ((updated-acc
+                (apply
+                  append
+                  (map
+                    (lambda (direction)
+                      (map
+                        (lambda (combination)
+                           (cons direction combination))
+                        acc))
+                    possible-directions))))
+          (loop
+            (- remaining-dimensions 1)
+            updated-acc))))
+    (filter
+      (lambda (combination)
+        (not
+          (equal?
+            combination-of-zeros
+            combination)))
+      (loop dimensions-number (list '())))))
+
 (define adjacent-directions
-  (list
-    (list -1 -1 -1 )
-    (list -1 -1 0 )
-    (list -1 -1 1 )
-    (list -1 0 -1 )
-    (list -1 0 0 )
-    (list -1 0 1 )
-    (list -1 1 -1 )
-    (list -1 1 0 )
-    (list -1 1 1 )
-    (list 0 -1 -1)
-    (list 0 -1 0)
-    (list 0 -1 1)
-    (list 0 0 -1)
-    (list 0 0 1)
-    (list 0 1 -1)
-    (list 0 1 0)
-    (list 0 1 1)
-    (list 1 -1 -1)
-    (list 1 -1 0)
-    (list 1 -1 1)
-    (list 1 0 -1)
-    (list 1 0 0)
-    (list 1 0 1)
-    (list 1 1 -1)
-    (list 1 1 0)
-    (list 1 1 1)))
+  (compute-adjacent-directions 3))
 
 (define (adjacent-values layer-idx row-idx column-idx grid)
   (filter
@@ -382,11 +385,11 @@
 
 (define (simulate-cycles initial-grid cycle-count)
   (define (loop grid current-cycle)
-    ;(display "Cycle ")
-    ;(display current-cycle)
-    ;(newline)
-    ;(grid 'show-grid)
-    ;(newline)
+;    (display "Cycle ")
+;    (display current-cycle)
+;    (newline)
+;    (grid 'show-grid)
+;    (newline)
     (if (< current-cycle cycle-count)
       (loop
         (update-grid grid)
@@ -416,8 +419,11 @@
 (display "Part 1:")
 (newline)
 (display
-  (active-cubes-number
-    (simulate-cycles
-      initial-grid
-      6)))
+  (with-timings
+    (lambda ()
+      (active-cubes-number
+        (simulate-cycles
+          initial-grid
+          6)))
+    write-timings))
 (newline)
