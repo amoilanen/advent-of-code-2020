@@ -261,12 +261,10 @@
     layers))
 
 (define (is-inactive-grid-slice? grid-slice)
-  (vector-every
-    (lambda (x)
-      (= x 0))
-    (vector-apply vector-append
-      (vector-apply vector-append
-          grid-slice))))
+  (=
+    0
+    (active-cubes-number-in-grid-slice
+          grid-slice)))
 
 (define (remove-empty-sides grid)
   (remove-empty-layer-sides
@@ -384,19 +382,26 @@
 
 (define (simulate-cycles initial-grid cycle-count)
   (define (loop grid current-cycle)
-    (display "Cycle ")
-    (display current-cycle)
-    (newline)
-    (grid 'show-grid)
-    (newline)
+    ;(display "Cycle ")
+    ;(display current-cycle)
+    ;(newline)
+    ;(grid 'show-grid)
+    ;(newline)
     (if (< current-cycle cycle-count)
       (loop
         (update-grid grid)
         (+ 1 current-cycle))
-      (display "Simulation finished.")))
+      grid))
   (loop initial-grid 0))
 
-; TODO: Count the number of active cubes after running the cycle 6 times, display the result
+(define (active-cubes-number-in-grid-slice grid-slice)
+  (vector-apply +
+    (vector-apply vector-append
+      (vector-apply vector-append
+        grid-slice))))
+
+(define (active-cubes-number grid)
+  (active-cubes-number-in-grid-slice (grid 'layers)))
 
 ; Display results
 (define initial-grid
@@ -407,6 +412,12 @@
           input-data)))
     (list 0 0 0)))
 
-(simulate-cycles
-  initial-grid
-  3)
+(newline)
+(display "Part 1:")
+(newline)
+(display
+  (active-cubes-number
+    (simulate-cycles
+      initial-grid
+      6)))
+(newline)
