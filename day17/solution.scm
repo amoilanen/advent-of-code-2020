@@ -269,66 +269,80 @@
           grid-slice))))
 
 (define (remove-empty-sides grid)
-  (remove-empty-side-slices grid))
+  (remove-empty-layer-sides
+    (remove-empty-row-sides
+      (remove-empty-column-sides
+        grid))))
 
-(define (remove-empty-layer-sides layers-list)
-  layers-list
-)
+(define (remove-empty-layer-sides grid)
+    (remove-empty-side-slices
+    (lambda (g)
+      (list 0 -1 -1))
+    (lambda (g)
+      (list (- (g 'layer-number) 1) -1 -1))
+    grid))
 
-(define (remove-empty-row-sides layers-list)
-  layers-list
-)
+(define (remove-empty-row-sides grid)
+  (remove-empty-side-slices
+    (lambda (g)
+      (list -1 0 -1))
+    (lambda (g)
+      (list -1 (- (g 'row-number) 1) -1))
+    grid))
 
 (define (remove-empty-column-sides grid)
-  grid)
+  (remove-empty-side-slices
+    (lambda (g)
+      (list -1 -1 0))
+    (lambda (g)
+      (list -1 -1 (- (g 'column-number) 1)))
+    grid))
 
-; TODO: Currently only omits empty side slices for columns, make more universal/reusable
-(define (remove-empty-side-slices grid)
+(define (remove-empty-side-slices first-slice-coordinates last-slice-coordinates grid)
   (let ((layers (grid 'layers))
-        (last-slice-index
-          (-
-            (grid 'column-number)
-            1))
         (left-top (grid 'left-top)))
     (let ((first-slice
-            (slice-grid
-              -1
-              -1
-              0
-              layers))
+            (apply
+              slice-grid
+              (append
+                (first-slice-coordinates grid)
+                (list layers))))
           (last-slice
-            (slice-grid
-              -1
-              -1
-              last-slice-index
-              layers)))
+            (apply
+              slice-grid
+              (append
+                (last-slice-coordinates grid)
+                (list layers)))))
       (let ((is-first-slice-inactive (is-inactive-grid-slice? first-slice))
             (is-last-slice-inactive (is-inactive-grid-slice? last-slice)))
         (let ((last-slice-handled
                 (if (is-inactive-grid-slice? last-slice)
                   (make-grid-from-layers-vector
-                    (omit-grid-slice
-                      -1
-                      -1
-                      last-slice-index
-                      layers)
+                    (apply
+                      omit-grid-slice
+                      (append
+                        (last-slice-coordinates grid)
+                        (list layers)))
                     left-top)
                   grid)))
           (let ((first-and-last-slice-handled
                   (if (is-inactive-grid-slice? first-slice)
                     (make-grid-from-layers-vector
-                      (omit-grid-slice
-                        -1
-                        -1
-                        0
-                        (last-slice-handled 'layers))
+                      (apply
+                        omit-grid-slice
+                        (append
+                          (first-slice-coordinates last-slice-handled)
+                          (list (last-slice-handled 'layers))))
                       (list
                         (car left-top)
                         (cadr left-top)
                         (- (caddr left-top) 1)))
                     last-slice-handled)))
             (if (or is-first-slice-inactive is-last-slice-inactive)
-              (remove-empty-side-slices first-and-last-slice-handled)
+              (remove-empty-side-slices
+                first-slice-coordinates
+                last-slice-coordinates
+                first-and-last-slice-handled)
               grid)))))))
   
 (define (update-grid grid)
@@ -354,11 +368,6 @@
               row-indexes))
           layer-indexes)
         (extended-grid 'left-top)))))
-
-; TODO: Filter out after update:
-; - empty edge layers from the results
-; - empty side row-wise
-; - empty side column-wise
 
 ; TODO: Run the update cycle 3 times, verify that the results are as expected
 ; TODO: Run the update cycle 6 times, display the result
