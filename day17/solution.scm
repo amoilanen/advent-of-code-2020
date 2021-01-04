@@ -23,7 +23,7 @@
     input))
 
 ; Grid
-(define (make-grid-from-layers-vector layers left-top-row-column-layer-indices)
+(define (make-grid-from-layers-vector layers left-top-layer-row-column-indices)
   (define layers-list
     (vector->list
       (vector-map
@@ -33,9 +33,9 @@
               vector->list
               rows)))
         layers)))
-  (make-grid layers-list left-top-row-column-layer-indices))
+  (make-grid layers-list left-top-layer-row-column-indices))
 
-(define (make-grid layers-list left-top-row-column-layer-indices)
+(define (make-grid layers-list left-top-layer-row-column-indices)
   (define layers
     (list->vector
       (map
@@ -45,18 +45,18 @@
               list->vector
               rows-list)))
         layers-list)))
-  (define (are-valid-cell-coordinates row-idx column-idx layer-idx)
+  (define (are-valid-cell-coordinates layer-idx row-idx column-idx)
     (and
+      (< layer-idx layer-number)
+      (>= layer-idx 0)
       (< row-idx row-number)
       (>= row-idx 0)
       (< column-idx column-number)
-      (>= column-idx 0)
-      (< layer-idx layer-number)
-      (>= layer-idx 0)))
+      (>= column-idx 0)))
   (define as-list
     layers-list)
-  (define (element-at row-idx column-idx layer-idx)
-    (if (are-valid-cell-coordinates row-idx column-idx layer-idx)
+  (define (element-at layer-idx row-idx column-idx)
+    (if (are-valid-cell-coordinates layer-idx row-idx column-idx)
       (let ((layer (vector-ref layers layer-idx)))
         (let ((row (vector-ref layer row-idx)))
           (vector-ref row column-idx)))
@@ -75,11 +75,11 @@
            0))))
   (define (show-grid)
     (display "left-top=")
-    (display left-top-row-column-layer-indices)
+    (display left-top-layer-row-column-indices)
     (newline)
     (map
       (lambda (layer-with-index)
-        (let ((initial-layer-idx (caddr left-top-row-column-layer-indices))
+        (let ((initial-layer-idx (car left-top-layer-row-column-indices))
               (layer-idx (car layer-with-index))
               (layer (cadr layer-with-index)))
           (display "z=")
@@ -102,7 +102,7 @@
           ((eq? op 'extend) (extend))
           ((eq? op 'layers) layers)
           ((eq? op 'layers-list) layers-list)
-          ((eq? op 'left-top) left-top-row-column-layer-indices)
+          ((eq? op 'left-top) left-top-layer-row-column-indices)
           ((eq? op 'element-at) element-at)
           ((eq? op 'layer-number) layer-number)
           ((eq? op 'row-number) row-number)
@@ -111,63 +111,63 @@
   dispatch)
 
 ; Solution
-(define (immediately-adjacent-value row-idx column-idx layer-idx row-dir column-dir layer-dir grid)
-  (let ((adjacent-row-idx (+ row-idx row-dir))
-        (adjacent-column-idx (+ column-idx column-dir))
-        (adjacent-layer-idx (+ layer-idx layer-dir)))
-    ((grid 'element-at) adjacent-row-idx adjacent-column-idx adjacent-layer-idx)))
+(define (immediately-adjacent-value layer-idx row-idx column-idx layer-dir row-dir column-dir grid)
+  (let ((adjacent-layer-idx (+ layer-idx layer-dir))
+        (adjacent-row-idx (+ row-idx row-dir))
+        (adjacent-column-idx (+ column-idx column-dir)))
+    ((grid 'element-at) adjacent-layer-idx adjacent-row-idx adjacent-column-idx)))
 
 (define adjacent-directions
   (list
-    (list -1 -1 -1)
-    (list -1 0 -1)
-    (list -1 1 -1)
+    (list -1 -1 -1 )
+    (list -1 -1 0 )
+    (list -1 -1 1 )
+    (list -1 0 -1 )
+    (list -1 0 0 )
+    (list -1 0 1 )
+    (list -1 1 -1 )
+    (list -1 1 0 )
+    (list -1 1 1 )
     (list 0 -1 -1)
-    (list 0 0 -1)
-    (list 0 1 -1)
-    (list 1 -1 -1)
-    (list 1 0 -1)
-    (list 1 1 -1)
-    (list -1 -1 0)
-    (list -1 0 0)
-    (list -1 1 0)
     (list 0 -1 0)
-    (list 0 1 0)
-    (list 1 -1 0)
-    (list 1 0 0)
-    (list 1 1 0)
-    (list -1 -1 1)
-    (list -1 0 1)
-    (list -1 1 1)
     (list 0 -1 1)
+    (list 0 0 -1)
     (list 0 0 1)
+    (list 0 1 -1)
+    (list 0 1 0)
     (list 0 1 1)
+    (list 1 -1 -1)
+    (list 1 -1 0)
     (list 1 -1 1)
+    (list 1 0 -1)
+    (list 1 0 0)
     (list 1 0 1)
+    (list 1 1 -1)
+    (list 1 1 0)
     (list 1 1 1)))
 
-(define (adjacent-values row-idx column-idx layer-idx grid)
+(define (adjacent-values layer-idx row-idx column-idx grid)
   (filter
     identity
     (map
       (lambda (x)
         (immediately-adjacent-value
+          layer-idx
           row-idx
           column-idx
-          layer-idx
           (car x)
           (cadr x)
           (caddr x)
           grid))
       adjacent-directions)))
 
-(define (updated-value-at row-idx column-idx layer-idx grid)
+(define (updated-value-at layer-idx row-idx column-idx grid)
   (let ((current-value
-           ((grid 'element-at) row-idx column-idx layer-idx))
+           ((grid 'element-at) layer-idx row-idx column-idx))
         (adjacent-active-count
            (apply
              +
-             (adjacent-values row-idx column-idx layer-idx grid))))
+             (adjacent-values layer-idx row-idx column-idx grid))))
     (cond ((and
               (= current-value 0)
               (= adjacent-active-count 3))
@@ -280,6 +280,11 @@
       (list 0 -1 -1))
     (lambda (g)
       (list (- (g 'layer-number) 1) -1 -1))
+    (lambda (left-top)
+      (list
+        (- (car left-top) 1)
+        (cadr left-top)
+        (caddr left-top)))
     grid))
 
 (define (remove-empty-row-sides grid)
@@ -288,6 +293,11 @@
       (list -1 0 -1))
     (lambda (g)
       (list -1 (- (g 'row-number) 1) -1))
+    (lambda (left-top)
+      (list
+        (car left-top)
+        (- (cadr left-top) 1)
+        (caddr left-top)))
     grid))
 
 (define (remove-empty-column-sides grid)
@@ -296,9 +306,14 @@
       (list -1 -1 0))
     (lambda (g)
       (list -1 -1 (- (g 'column-number) 1)))
+    (lambda (left-top)
+      (list
+        (car left-top)
+        (cadr left-top)
+        (- (caddr left-top) 1)))
     grid))
 
-(define (remove-empty-side-slices first-slice-coordinates last-slice-coordinates grid)
+(define (remove-empty-side-slices first-slice-coordinates last-slice-coordinates left-top-update grid)
   (let ((layers (grid 'layers))
         (left-top (grid 'left-top)))
     (let ((first-slice
@@ -333,15 +348,13 @@
                         (append
                           (first-slice-coordinates last-slice-handled)
                           (list (last-slice-handled 'layers))))
-                      (list
-                        (car left-top)
-                        (cadr left-top)
-                        (- (caddr left-top) 1)))
+                      (left-top-update left-top))
                     last-slice-handled)))
             (if (or is-first-slice-inactive is-last-slice-inactive)
               (remove-empty-side-slices
                 first-slice-coordinates
                 last-slice-coordinates
+                left-top-update
                 first-and-last-slice-handled)
               grid)))))))
   
@@ -360,17 +373,29 @@
                 (map
                   (lambda (column-index)
                     (updated-value-at
+                      layer-index
                       row-index
                       column-index
-                      layer-index
                       extended-grid))
                   column-indexes))
               row-indexes))
           layer-indexes)
         (extended-grid 'left-top)))))
 
-; TODO: Run the update cycle 3 times, verify that the results are as expected
-; TODO: Run the update cycle 6 times, display the result
+(define (simulate-cycles initial-grid cycle-count)
+  (define (loop grid current-cycle)
+    (display "Cycle ")
+    (display current-cycle)
+    (newline)
+    (grid 'show-grid)
+    (newline)
+    (if (< current-cycle cycle-count)
+      (loop
+        (update-grid grid)
+        (+ 1 current-cycle))
+      (display "Simulation finished.")))
+  (loop initial-grid 0))
+
 ; TODO: Count the number of active cubes after running the cycle 6 times, display the result
 
 ; Display results
@@ -382,10 +407,6 @@
           input-data)))
     (list 0 0 0)))
 
-(define updated-grid
-  (update-grid
-    initial-grid))
-
-(newline)
-(updated-grid 'show-grid)
-(newline)
+(simulate-cycles
+  initial-grid
+  3)
