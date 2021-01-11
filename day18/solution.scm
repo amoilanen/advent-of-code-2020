@@ -6,13 +6,19 @@
     (string->list "3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3")))
 
 (define ops-with-priorities
-  '((#\^ 4 #f) (#\* 3 #t) (#\/ 3 #t) (#\+ 2 #t) (#\- 2 #t)))
+  (list
+    (list #\^ 4 #f (lambda (x y) (expt x y)))
+    (list #\* 3 #t (lambda (x y) (* x y)))
+    (list #\/ 3 #t (lambda (x y) (/ x y)))
+    (list #\+ 2 #t (lambda (x y) (+ x y)))
+    (list #\- 2 #t (lambda (x y) (- x y)))))
 
 (define ops
   (map
     car
     ops-with-priorities))
 
+;TODO: Re-factor commonality between op-priority, op-lambda, is-left-associative?
 (define (op-priority op)
   (let ((found-op
           (assoc op ops-with-priorities)))
@@ -27,6 +33,13 @@
       (caddr found-op)
       #f)))
 
+(define (op-lambda op)
+  (let ((found-op
+          (assoc op ops-with-priorities)))
+    (if found-op
+      (cadddr found-op)
+      (error "Unknown op" op))))
+
 (define (is-operator? token)
   (contains? token ops))
 
@@ -36,6 +49,8 @@
 (define (is-right-bracket? token)
   (equal? token '#\)))
 
+; TODO: Consider using reduce or fold-left?
+; TODO: Re-factor commonality between pop-operators-with-greater-or-equal-precedence and pop-upto-left-bracket
 (define (pop-operators-with-greater-or-equal-precedence operator operators)
   (define (loop remaining-operators popped-operators)
     (if (null? remaining-operators)
@@ -66,7 +81,7 @@
 
 ; Based on https://en.wikipedia.org/wiki/Shunting-yard_algorithm
 ; https://brilliant.org/wiki/shunting-yard-algorithm/
-(define (evaluate expr)
+(define (to-postfix expr)
   (define (handle-next remaining-tokens operators output)
     ;(newline)
     ;(display "handle-next(")
@@ -109,8 +124,54 @@
               (cons current-token output)))))))
   (handle-next expr '() '()))
 
+(define (evaluate-postfix expr)
+  (define (handle-next remaining-tokens stack)
+    (if (null? remaining-tokens)
+      (if (> (length stack) 1)
+        (error "Invalid expression" expr "remaining stack" stack)
+        (car stack))
+      (let ((current-token (car remaining-tokens)))
+        (cond ((is-operator? current-token)
+                (if (< (length stack) 2)
+                  (error "Not enough operands on the stack left" stack "remaining tokens" remaining-tokens)
+                  (let ((left-operand
+                          (car stack))
+                        (right-operand
+                          (cadr stack))
+                        (op-function
+                          (op-lambda current-token)))
+                    (handle-next
+                      (cdr remaining-tokens)
+                      (cons
+                        (op-function
+                          left-operand
+                          right-operand)
+                        (cddr stack))))))
+              (else
+                (handle-next
+                  (cdr remaining-tokens)
+                  (cons
+                    (string->number (char->string current-token))
+                    stack)))))))
+  (handle-next expr '()))
+
 (newline)
 (display
-  (evaluate
+  (to-postfix
     input))
+(newline)
+
+(define postfix-expressions
+  (map
+    string->list
+    (list
+      "12+"
+      "34-5+2*"
+      "342*15-23^^/+")))
+
+(newline)
+(display
+  (map
+    evaluate-postfix
+    postfix-expressions))
 (newline)
