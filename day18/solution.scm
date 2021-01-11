@@ -18,27 +18,24 @@
     car
     ops-with-priorities))
 
-;TODO: Re-factor commonality between op-priority, op-lambda, is-left-associative?
-(define (op-priority op)
+(define (op-field op field-accessor default-value)
   (let ((found-op
           (assoc op ops-with-priorities)))
     (if found-op
-      (cadr found-op)
-      -1)))
+      (field-accessor found-op)
+      (default-value))))
+
+(define (op-priority op)
+  (op-field op cadr (lambda () -1)))
 
 (define (is-left-associative? op)
-  (let ((found-op
-          (assoc op ops-with-priorities)))
-    (if found-op
-      (caddr found-op)
-      #f)))
+  (op-field op caddr (lambda () #f)))
 
 (define (op-lambda op)
-  (let ((found-op
-          (assoc op ops-with-priorities)))
-    (if found-op
-      (cadddr found-op)
-      (error "Unknown op" op))))
+  (op-field
+    op
+    cadddr
+    (lambda () (error "Did not find operator configuration" op))))
 
 (define (is-operator? token)
   (contains? token ops))
@@ -50,34 +47,37 @@
   (equal? token '#\)))
 
 ; TODO: Consider using reduce or fold-left?
-; TODO: Re-factor commonality between pop-operators-with-greater-or-equal-precedence and pop-upto-left-bracket
-(define (pop-operators-with-greater-or-equal-precedence operator operators)
+(define (pop-operators-while operators condition)
   (define (loop remaining-operators popped-operators)
     (if (null? remaining-operators)
       (cons remaining-operators (reverse popped-operators))
       (let ((current-operator (car remaining-operators)))
-        (if (or
-              (> (op-priority current-operator) (op-priority operator))
-              (and
-                (is-left-associative? current-operator)
-                (= (op-priority current-operator) (op-priority operator))))
+        (if (condition current-operator)
           (loop
             (cdr remaining-operators)
             (cons current-operator popped-operators))
           (cons remaining-operators (reverse popped-operators))))))
   (loop operators '()))
 
+(define (pop-operators-with-greater-or-equal-precedence operator operators)
+  (pop-operators-while
+    operators
+    (lambda (current-operator)
+      (or
+        (> (op-priority current-operator) (op-priority operator))
+        (and
+          (is-left-associative? current-operator)
+          (= (op-priority current-operator) (op-priority operator)))))))
+
 (define (pop-upto-left-bracket operators)
-  (define (loop remaining-operators popped-operators)
-    (if (null? remaining-operators)
-      (cons remaining-operators (reverse popped-operators))
-      (let ((current-operator (car remaining-operators)))
-        (if (is-left-bracket? current-operator)
-          (cons (cdr remaining-operators) (reverse popped-operators))
-          (loop
-            (cdr remaining-operators)
-            (cons current-operator popped-operators))))))
-  (loop operators '()))
+  (let ((remaining-operators-and-popped-operators
+          (pop-operators-while
+            operators
+            (lambda (current-operator)
+              (not (is-left-bracket? current-operator))))))
+      (let ((remaining-operators (car remaining-operators-and-popped-operators))
+            (popped-operators (cdr remaining-operators-and-popped-operators)))
+        (cons (cdr remaining-operators) popped-operators)))) ; also omit the left bracket itself
 
 ; Based on https://en.wikipedia.org/wiki/Shunting-yard_algorithm
 ; https://brilliant.org/wiki/shunting-yard-algorithm/
