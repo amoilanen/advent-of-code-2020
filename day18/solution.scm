@@ -1,10 +1,24 @@
 (load "./lib/list.scm")
 (load "./lib/parser.scm")
+(load "./lib/timings.scm")
 
-(define input
-  (strip-spaces
-    (string->list "3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3")))
+(define input "
+1 + 2 * 3 + 4 * 5 + 6
+1 + (2 * 3) + (4 * (5 + 6))
+")
 
+; Parser
+(define (parse-input input)
+  (let ((lines
+          (omit-empty
+            (split-list-by input '#\newline))))
+    (map
+      (lambda (line)
+        (strip-spaces
+          line))
+      lines)))
+
+; Computation
 (define ops-with-priorities
   (list
     (list #\^ 4 #f (lambda (x y) (expt x y)))
@@ -46,7 +60,6 @@
 (define (is-right-bracket? token)
   (equal? token '#\)))
 
-; TODO: Consider using reduce or fold-left?
 (define (pop-operators-while operators condition)
   (define (loop remaining-operators popped-operators)
     (if (null? remaining-operators)
@@ -83,15 +96,6 @@
 ; https://brilliant.org/wiki/shunting-yard-algorithm/
 (define (to-postfix expr)
   (define (handle-next remaining-tokens operators output)
-    ;(newline)
-    ;(display "handle-next(")
-    ;(display remaining-tokens)
-    ;(display ", ")
-    ;(display operators)
-    ;(display ", ")
-    ;(display output)
-    ;(display ")")
-    ;(newline)
     (if (null? remaining-tokens) (append (reverse output) operators)
       (let ((current-token (car remaining-tokens)))
         (cond ((is-operator? current-token)
@@ -155,23 +159,35 @@
                     stack)))))))
   (handle-next expr '()))
 
+(define (evaluate expr)
+  (evaluate-postfix
+    (to-postfix expr)))
+
+(define (answer-to-part-1 input-expressions)
+  (apply
+    +
+    (map
+      evaluate
+      input-expressions)))
+
+; Display results
+
+(define ops-with-priorities
+  (list
+    (list #\* 2 #t (lambda (x y) (* x y)))
+    (list #\+ 2 #t (lambda (x y) (+ x y)))))
+
+(define input-expressions
+  (parse-input
+   (string->list input)))
+
+(newline)
+(display "Part 1:")
 (newline)
 (display
-  (to-postfix
-    input))
-(newline)
-
-(define postfix-expressions
-  (map
-    string->list
-    (list
-      "12+"
-      "34-5+2*"
-      "342*15-23^^/+")))
-
-(newline)
-(display
-  (map
-    evaluate-postfix
-    postfix-expressions))
+  (with-timings
+    (lambda ()
+      (answer-to-part-1
+        input-expressions))
+    write-timings))
 (newline)
