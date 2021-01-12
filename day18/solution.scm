@@ -133,11 +133,6 @@
   (handle-next expr '() '()))
 
 (define (evaluate-postfix expr)
-  (newline)
-  (display "evaluate-postfix")
-  (newline)
-  (display expr)
-  (newline)
   (define (handle-next remaining-tokens stack)
     (if (null? remaining-tokens)
       (if (> (length stack) 1)
