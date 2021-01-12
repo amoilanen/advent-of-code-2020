@@ -5,6 +5,10 @@
 (define input "
 1 + 2 * 3 + 4 * 5 + 6
 1 + (2 * 3) + (4 * (5 + 6))
+2 * 3 + (4 * 5)
+5 + (8 * 3 + 9 + 3 * 4 * 3)
+5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))
+((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2
 ")
 
 ; Parser
@@ -63,13 +67,13 @@
 (define (pop-operators-while operators condition)
   (define (loop remaining-operators popped-operators)
     (if (null? remaining-operators)
-      (cons remaining-operators (reverse popped-operators))
+      (cons remaining-operators popped-operators)
       (let ((current-operator (car remaining-operators)))
         (if (condition current-operator)
           (loop
             (cdr remaining-operators)
-            (cons current-operator popped-operators))
-          (cons remaining-operators (reverse popped-operators))))))
+            (append popped-operators (list current-operator)))
+          (cons remaining-operators popped-operators)))))
   (loop operators '()))
 
 (define (pop-operators-with-greater-or-equal-precedence operator operators)
@@ -96,7 +100,7 @@
 ; https://brilliant.org/wiki/shunting-yard-algorithm/
 (define (to-postfix expr)
   (define (handle-next remaining-tokens operators output)
-    (if (null? remaining-tokens) (append (reverse output) operators)
+    (if (null? remaining-tokens) (append output operators)
       (let ((current-token (car remaining-tokens)))
         (cond ((is-operator? current-token)
                 (let ((updated-and-popped-operators
@@ -106,7 +110,7 @@
                     (handle-next
                       (cdr remaining-tokens)
                       (cons current-token updated-operators)
-                      (append popped-operators output)))))
+                      (append output popped-operators)))))
               ((is-left-bracket? current-token)
                 (handle-next
                   (cdr remaining-tokens)
@@ -120,15 +124,20 @@
                     (handle-next
                       (cdr remaining-tokens)
                       updated-operators
-                      (append popped-operators output)))))
+                      (append output popped-operators)))))
           (else
             (handle-next
               (cdr remaining-tokens)
               operators
-              (cons current-token output)))))))
+              (append output (list current-token))))))))
   (handle-next expr '() '()))
 
 (define (evaluate-postfix expr)
+  (newline)
+  (display "evaluate-postfix")
+  (newline)
+  (display expr)
+  (newline)
   (define (handle-next remaining-tokens stack)
     (if (null? remaining-tokens)
       (if (> (length stack) 1)
@@ -163,7 +172,7 @@
   (evaluate-postfix
     (to-postfix expr)))
 
-(define (answer-to-part-1 input-expressions)
+(define (sum-of-evaluated-expressions input-expressions)
   (apply
     +
     (map
@@ -171,7 +180,6 @@
       input-expressions)))
 
 ; Display results
-
 (define ops-with-priorities
   (list
     (list #\* 2 #t (lambda (x y) (* x y)))
@@ -187,7 +195,23 @@
 (display
   (with-timings
     (lambda ()
-      (answer-to-part-1
+      (sum-of-evaluated-expressions
+        input-expressions))
+    write-timings))
+(newline)
+
+(define ops-with-priorities
+  (list
+    (list #\* 1 #t (lambda (x y) (* x y)))
+    (list #\+ 2 #t (lambda (x y) (+ x y)))))
+
+(newline)
+(display "Part 2:")
+(newline)
+(display
+  (with-timings
+    (lambda ()
+      (sum-of-evaluated-expressions
         input-expressions))
     write-timings))
 (newline)
