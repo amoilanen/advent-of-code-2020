@@ -23,10 +23,21 @@
       (loop matchers str 0))))
 
 (define (rule-one-of matchers)
+  (define (loop remaining-matchers str)
+    (if (null? remaining-matchers) (cons #f 0)
+      (let ((next-rule
+              (car remaining-matchers)))
+        (let ((next-rule-match (next-rule str)))
+          (let ((next-rule-matches (car next-rule-match))
+                (offset (cdr next-rule-match)))
+            (if next-rule-matches
+              (cons #t offset)
+              (loop
+                (cdr remaining-matchers)
+                str)))))))
   (lambda (str)
     (if (null? str) (cons #f 0)
-        ;TODO: Implement
-        (cons #f 0))))
+      (loop matchers str))))
 
 (define (rule-reference matcher-idx)
   ;TODO: Implement
@@ -51,6 +62,16 @@
 (display
   (map
     (rule-sequence
+      (list
+        (rule-character #\b)
+        (rule-character #\c)))
+    input))
+(newline)
+
+(newline)
+(display
+  (map
+    (rule-one-of
       (list
         (rule-character #\b)
         (rule-character #\c)))
