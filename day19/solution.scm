@@ -1,11 +1,12 @@
 (load "./lib/list.scm")
 (load "./lib/parser.scm")
+(load "./lib/string.scm")
 
 (define input-data "
 0: 1 2
 1: a
-2: 1 3 | 3 1
-3: b
+2: 1 31 | 31 1
+31: b
 
 aab
 aba
@@ -40,25 +41,41 @@ abac
          (split-list-by
            input
            #\space)))
-    ;TODO: parse the rules
-    rule-parts))
+    (let ((rule-id
+            (char-list->string
+                (drop-from-tail (car rule-parts) 1)))
+          (rule-definition
+            (map char-list->string (cdr rule-parts))))
+      (cons rule-id (parse-or rule-definition)))))
+
+(define (parse-or input)
+  (let ((or-parts (split-list-by input "|")))
+    (if (> (length or-parts) 1)
+      (apply
+        rule-one-of
+        (map
+          parse-seq
+          or-parts))
+      (parse-seq (car or-parts)))))
+
+(define (parse-seq input)
+    (if (> (length input) 1)
+      (apply
+        rule-sequence
+        (map
+          parse-simple-rule
+          input))
+      (parse-simple-rule (car input))))
+
+(define (parse-simple-rule input)
+  (if (string-is-number? input)
+    (rule-reference input)
+    (rule-character input)))
 
 (define (parse-messages input)
   (map
     list->string
     input))
-
-(define (parse-instruction input)
-  (let ((input-parts (split-list-by-list input (string->list "=[]"))))
-    (let ((instruction
-            (map
-              list->string
-                (omit-empty
-                  input-parts))))
-      (let ((op-code (car instruction)))
-        (cond ((equal? op-code "mask")
-                 (op-set-mask (cadr instruction)))
-              (else (apply op-memory-write (cdr instruction))))))))
 
 ; Rules
 (define (rule-character ch)
@@ -139,48 +156,15 @@ abac
 
 ; Display the results
 
-;(newline)
-;(display
-;  (parse-input
-;    (string->list input-data)))
-;(newline)
+(define parsed
+  (parse-input
+    (string->list input-data)))
 
 (define rules
-  (list
-    (cons 0 (rule-sequence
-         (rule-reference 1)
-         (rule-reference 2)))
-    (cons 1 (rule-character #\a))
-    (cons 2 (rule-one-of
-         (rule-sequence
-           (rule-reference 1)
-           (rule-reference 3))
-         (rule-sequence
-           (rule-reference 3)
-           (rule-reference 1))))
-    (cons 3 (rule-character #\b))))
+  (car parsed))
 
-
-(define input
-  (list
-    (string->list "aab")
-    (string->list "aba")
-    (string->list "bab")
-    (string->list "bba")
-    (string->list "aaa")
-    (string->list "abb")))
-
-
-(define rule-zero
-  (rule-reference 0))
-
-;TODO: Also visualize the rules themselves
-(newline)
-(display
-  (map
-    (rule-zero 'match)
-    input))
-(newline)
+(define messages
+  (cdr parsed))
 
 (newline)
 (display
@@ -188,4 +172,8 @@ abac
     (lambda (r)
       ((cdr r) 'as-list))
     rules))
+(newline)
+
+(newline)
+(display messages)
 (newline)

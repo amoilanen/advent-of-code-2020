@@ -32,6 +32,9 @@
   (reverse
     (loop l '())))
 
+(define (list-flatten l)
+  (apply append l))
+
 (define (omit-empty l)
   (filter
     (lambda (p) (> (length p) 0))
