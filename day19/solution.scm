@@ -1,21 +1,56 @@
 (load "./lib/list.scm")
 (load "./lib/parser.scm")
 (load "./lib/string.scm")
+(load "./lib/timings.scm")
 
 (define input-data "
-0: 1 2
+42: 9 14 | 10 1
+9: 14 27 | 1 26
+10: 23 14 | 28 1
 1: a
-2: 1 3 | 3 1
-3: b
+11: 42 31 | 42 11 31
+5: 1 14 | 15 1
+19: 14 1 | 14 14
+12: 24 14 | 19 1
+16: 15 1 | 14 14
+31: 14 17 | 1 13
+6: 14 14 | 1 14
+2: 1 24 | 14 4
+0: 8 11
+13: 14 3 | 1 12
+15: 1 | 14
+17: 14 2 | 1 7
+23: 25 1 | 22 14
+28: 16 1
+4: 1 1
+20: 14 14 | 1 15
+3: 5 14 | 16 1
+27: 1 6 | 14 18
+14: b
+21: 14 1 | 1 14
+25: 1 1 | 1 14
+22: 14 14
+8: 42 | 42 8
+26: 14 22 | 1 20
+18: 15 15
+7: 14 5 | 1 21
+24: 14 1
 
-aab
-aba
-bab
-bba
-aaa
-abb
-aabc
-abac
+abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+bbabbbbaabaabba
+babbbbaabbbbbabbbbbbaabaaabaaa
+aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+bbbbbbbaaaabbbbaaabbabaaa
+bbbababbbbaaaaaaaabbababaaababaabab
+ababaaaaaabaaab
+ababaaaaabbbaba
+baabbaaaabbaaaababbaababb
+abbbbabbbbaaaababbbbbbaaaababb
+aaaaabbaabaaaaababaa
+aaaabbaaaabbaaa
+aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+babaaabbbaaabaababbaabababaaab
+aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
 ")
 
 ; Parser
@@ -93,18 +128,19 @@ abac
 
 (define (rule-sequence . rules)
   (define (loop remaining-rules remaining-str offset)
-    (if (null? remaining-rules) (cons #t offset)
-      (let ((next-rule
-              (car remaining-rules)))
-        (let ((next-rule-match ((next-rule 'match) remaining-str)))
-          (let ((next-rule-matches (car next-rule-match))
-                (offset-increment (cdr next-rule-match)))
-            (if next-rule-matches
-              (loop
-                (cdr remaining-rules)
-                (drop remaining-str offset-increment)
-                (+ offset offset-increment))
-              (cons #f offset)))))))
+    (cond ((null? remaining-rules) (cons #t offset))
+          ((null? remaining-str) (cons #t offset))
+          (else (let ((next-rule
+                        (car remaining-rules)))
+                  (let ((next-rule-match ((next-rule 'match) remaining-str)))
+                    (let ((next-rule-matches (car next-rule-match))
+                          (offset-increment (cdr next-rule-match)))
+                      (if next-rule-matches
+                        (loop
+                          (cdr remaining-rules)
+                          (drop remaining-str offset-increment)
+                          (+ offset offset-increment))
+                        (cons #f offset))))))))
   (define (match str)
     (if (null? str) (cons #f 0)
       (loop rules str 0)))
@@ -181,17 +217,38 @@ abac
 
 (define rule-zero
   (matches-rule?
-    (cdr
-      (car rules))))
+    (rule-reference "0")))
+
+;(define (matching-messages)
+;  (filter
+;    (lambda (m)
+;      (rule-zero
+;        (string->list m)))
+;    messages))
+
+(define (number-of-matching-messages)
+  (length
+    (filter
+      (lambda (m)
+        (rule-zero
+          (string->list m)))
+      messages)))
+
+;(newline)
+;(map
+;  (lambda (m)
+;    (newline)
+;    (display m)
+;    m)
+;  (matching-messages))
+;(newline)
 
 (newline)
-(map
-  (lambda (m)
-    (newline)
-    (display m)
-    (newline)
-    (display
-      (rule-zero
-        (string->list m))))
-  messages)
+(display "Part 1:")
+(newline)
+(display
+  (with-timings
+    (lambda ()
+      (number-of-matching-messages))
+    write-timings))
 (newline)
