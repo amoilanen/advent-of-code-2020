@@ -5,8 +5,8 @@
 (define input-data "
 0: 1 2
 1: a
-2: 1 31 | 31 1
-31: b
+2: 1 3 | 3 1
+3: b
 
 aab
 aba
@@ -70,7 +70,9 @@ abac
 (define (parse-simple-rule input)
   (if (string-is-number? input)
     (rule-reference input)
-    (rule-character input)))
+    (rule-character
+      (car
+        (string->list input)))))
 
 (define (parse-messages input)
   (map
@@ -154,8 +156,19 @@ abac
          (else (error "Unsupported op for rule-reference:" op))))
   dispatch)
 
-; Display the results
+(define (matches-rule? rule)
+  (lambda (str)
+    (let ((rule-match-and-offset
+            ((rule 'match) str)))
+      (let ((rule-match (car rule-match-and-offset))
+            (rule-match-offset (cdr rule-match-and-offset)))
+        (and
+          rule-match
+          (=
+            rule-match-offset
+            (length str)))))))
 
+; Display the results
 (define parsed
   (parse-input
     (string->list input-data)))
@@ -166,14 +179,19 @@ abac
 (define messages
   (cdr parsed))
 
-(newline)
-(display
-  (map
-    (lambda (r)
-      ((cdr r) 'as-list))
-    rules))
-(newline)
+(define rule-zero
+  (matches-rule?
+    (cdr
+      (car rules))))
 
 (newline)
-(display messages)
+(map
+  (lambda (m)
+    (newline)
+    (display m)
+    (newline)
+    (display
+      (rule-zero
+        (string->list m))))
+  messages)
 (newline)
