@@ -4,26 +4,58 @@
 (load "./lib/timings.scm")
 
 (define input-data "
-0: 1 2 | 2 1
+42: 9 14 | 10 1
+9: 14 27 | 1 26
+10: 23 14 | 28 1
 1: a
-2: b | 3 2 3
-3: b
+11: 42 31
+5: 1 14 | 15 1
+19: 14 1 | 14 14
+12: 24 14 | 19 1
+16: 15 1 | 14 14
+31: 14 17 | 1 13
+6: 14 14 | 1 14
+2: 1 24 | 14 4
+0: 8 11
+13: 14 3 | 1 12
+15: 1 | 14
+17: 14 2 | 1 7
+23: 25 1 | 22 14
+28: 16 1
+4: 1 1
+20: 14 14 | 1 15
+3: 5 14 | 16 1
+27: 1 6 | 14 18
+14: b
+21: 14 1 | 1 14
+25: 1 1 | 1 14
+22: 14 14
+8: 42
+26: 14 22 | 1 20
+18: 15 15
+7: 14 5 | 1 21
+24: 14 1
 
-ab
-abbb
-abbbbb
-ba
-bbba
-bbbbba
-abb
-abbbb
-bba
-bbbba
-abab
-baba
-aba
-abbba
-abbbbba
+abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+bbabbbbaabaabba
+babbbbaabbbbbabbbbbbaabaaabaaa
+aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+bbbbbbbaaaabbbbaaabbabaaa
+bbbababbbbaaaaaaaabbababaaababaabab
+ababaaaaaabaaab
+ababaaaaabbbaba
+baabbaaaabbaaaababbaababb
+abbbbabbbbaaaababbbbbbaaaababb
+aaaaabbaabaaaaababaa
+aaaabbaaaabbaaa
+aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+babaaabbbaaabaababbaabababaaab
+aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
+")
+
+(define modified-rules "
+8: 42 | 42 8
+11: 42 31 | 42 11 31
 ")
 
 ; Parser
@@ -38,6 +70,14 @@ abbbbba
     (cons
       (parse-rules (car input-parts))
       (parse-messages (cadr input-parts)))))
+
+(define (parse-modified-rules input)
+  (let ((input-parts
+          (omit-empty
+            (split-list-by
+              input
+              '#\newline))))
+    (parse-rules input-parts)))
 
 (define (parse-rules input)
   (map
@@ -94,17 +134,7 @@ abbbbba
           ((equal? (car str) ch) (list (cons #t 1)))
           (else (list (cons #f 0)))))
   (define (dispatch op)
-    (cond ((eq? op 'match) (lambda (str)
-            (let ((result (match str)))
-              ;(newline)
-              ;(display "rule-character: ")
-              ;(display ch)
-              ;(newline)
-              ;(display str)
-              ;(newline)
-              ;(display result)
-              ;(newline)
-              result)))
+    (cond ((eq? op 'match) match)
           ((eq? op 'as-list) (list "ch:" ch))
           (else (error "Unsupported op for rule-character:" op))))
   dispatch)
@@ -130,16 +160,7 @@ abbbbba
                             (car next-rule-match))
                           next-rule-matches))))))))
   (define (match str)
-    (let ((result (loop rules str 0)))
-      ;(newline)
-      ;(display "rule-sequence: ")
-      ;(display (map (lambda (r) (r 'as-list)) rules))
-      ;(newline)
-      ;(display str)
-      ;(newline)
-      ;(display result)
-      ;(newline)
-      result))
+    (loop rules str 0))
   (define (dispatch op)
     (cond ((eq? op 'match) match)
           ((eq? op 'as-list) (list "seq:"
@@ -168,16 +189,7 @@ abbbbba
                           (cdr remaining-rules)
                           str))))))))
   (define (match str)
-    (let ((result (loop rules str)))
-      ;(newline)
-      ;(display "rule-one-of: ")
-      ;(display (map (lambda (r) (r 'as-list)) rules))
-      ;(newline)
-      ;(display str)
-      ;(newline)
-      ;(display result)
-      ;(newline)
-      result))
+    (loop rules str))
   (define (dispatch op)
    (cond ((eq? op 'match) match)
          ((eq? op 'as-list) (list "one-of:"
@@ -248,27 +260,27 @@ abbbbba
           (string->list m)))
       messages)))
 
-;(newline)
-;(display
-;  (rule-zero (string->list "aaaabbaaaabbaaa")))
-;(newline)
-
-;(newline)
-;(display
-;  (rule-zero (string->list "abbb")))
-;(newline)
-
-(newline)
-(map
-  (lambda (m)
-    (newline)
-    (display m)
-    m)
-  (matching-messages))
-(newline)
-
 (newline)
 (display "Part 1:")
+(newline)
+(display
+  (with-timings
+    (lambda ()
+      (number-of-matching-messages))
+    write-timings))
+(newline)
+
+(define parsed-modified-rules
+  (parse-modified-rules
+    (string->list modified-rules)))
+
+(define rules
+  (append
+    parsed-modified-rules
+    rules))
+
+(newline)
+(display "Part 2:")
 (newline)
 (display
   (with-timings
