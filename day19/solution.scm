@@ -129,7 +129,15 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
 (define (rule-sequence . rules)
   (define (loop remaining-rules remaining-str offset)
     (cond ((null? remaining-rules) (cons #t offset))
-          ((null? remaining-str) (cons #t offset))
+          ((null? remaining-str)
+            ((lambda ()
+               (newline)
+               (display "rule-sequence: ")
+               (display (map (lambda (r) (r 'as-list)) remaining-rules))
+               (newline)
+               (display remaining-str)
+               (newline)
+               (cons #f offset))))
           (else (let ((next-rule
                         (car remaining-rules)))
                   (let ((next-rule-match ((next-rule 'match) remaining-str)))
@@ -142,8 +150,7 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
                           (+ offset offset-increment))
                         (cons #f offset))))))))
   (define (match str)
-    (if (null? str) (cons #f 0)
-      (loop rules str 0)))
+    (loop rules str 0))
   (define (dispatch op)
     (cond ((eq? op 'match) match)
           ((eq? op 'as-list) (list "seq:"
@@ -156,20 +163,20 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
 
 (define (rule-one-of . rules)
   (define (loop remaining-rules str)
-    (if (null? remaining-rules) (cons #f 0)
-      (let ((next-rule
-              (car remaining-rules)))
-        (let ((next-rule-match ((next-rule 'match) str)))
-          (let ((next-rule-matches (car next-rule-match))
-                (offset (cdr next-rule-match)))
-            (if next-rule-matches
-              (cons #t offset)
-              (loop
-                (cdr remaining-rules)
-                str)))))))
+    (cond ((null? remaining-rules) (cons #f 0))
+          ((null? str) (cons #f 0))
+          (else (let ((next-rule
+                        (car remaining-rules)))
+                  (let ((next-rule-match ((next-rule 'match) str)))
+                    (let ((next-rule-matches (car next-rule-match))
+                          (offset (cdr next-rule-match)))
+                      (if next-rule-matches
+                        (cons #t offset)
+                        (loop
+                          (cdr remaining-rules)
+                          str))))))))
   (define (match str)
-    (if (null? str) (cons #f 0)
-      (loop rules str)))
+    (loop rules str))
   (define (dispatch op)
    (cond ((eq? op 'match) match)
          ((eq? op 'as-list) (list "one-of:"
@@ -219,12 +226,12 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
   (matches-rule?
     (rule-reference "0")))
 
-;(define (matching-messages)
-;  (filter
-;    (lambda (m)
-;      (rule-zero
-;        (string->list m)))
-;    messages))
+(define (matching-messages)
+  (filter
+    (lambda (m)
+      (rule-zero
+        (string->list m)))
+    messages))
 
 (define (number-of-matching-messages)
   (length
@@ -234,14 +241,24 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
           (string->list m)))
       messages)))
 
-;(newline)
-;(map
-;  (lambda (m)
-;    (newline)
-;    (display m)
-;    m)
-;  (matching-messages))
-;(newline)
+(newline)
+(display
+  (rule-zero (string->list "aaaabbaaaabbaaa")))
+(newline)
+
+(newline)
+(display
+  (rule-zero (string->list "aaaaabbaabaaaaababaa")))
+(newline)
+
+(newline)
+(map
+  (lambda (m)
+    (newline)
+    (display m)
+    m)
+  (matching-messages))
+(newline)
 
 (newline)
 (display "Part 1:")
