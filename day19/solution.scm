@@ -4,53 +4,26 @@
 (load "./lib/timings.scm")
 
 (define input-data "
-42: 9 14 | 10 1
-9: 14 27 | 1 26
-10: 23 14 | 28 1
+0: 1 2 | 2 1
 1: a
-11: 42 31 | 42 11 31
-5: 1 14 | 15 1
-19: 14 1 | 14 14
-12: 24 14 | 19 1
-16: 15 1 | 14 14
-31: 14 17 | 1 13
-6: 14 14 | 1 14
-2: 1 24 | 14 4
-0: 8 11
-13: 14 3 | 1 12
-15: 1 | 14
-17: 14 2 | 1 7
-23: 25 1 | 22 14
-28: 16 1
-4: 1 1
-20: 14 14 | 1 15
-3: 5 14 | 16 1
-27: 1 6 | 14 18
-14: b
-21: 14 1 | 1 14
-25: 1 1 | 1 14
-22: 14 14
-8: 42 | 42 8
-26: 14 22 | 1 20
-18: 15 15
-7: 14 5 | 1 21
-24: 14 1
+2: b | 3 2 3
+3: b
 
-abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
-bbabbbbaabaabba
-babbbbaabbbbbabbbbbbaabaaabaaa
-aaabbbbbbaaaabaababaabababbabaaabbababababaaa
-bbbbbbbaaaabbbbaaabbabaaa
-bbbababbbbaaaaaaaabbababaaababaabab
-ababaaaaaabaaab
-ababaaaaabbbaba
-baabbaaaabbaaaababbaababb
-abbbbabbbbaaaababbbbbbaaaababb
-aaaaabbaabaaaaababaa
-aaaabbaaaabbaaa
-aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
-babaaabbbaaabaababbaabababaaab
-aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
+ab
+abbb
+abbbbb
+ba
+bbba
+bbbbba
+abb
+abbbb
+bba
+bbbba
+abab
+baba
+aba
+abbba
+abbbbba
 ")
 
 ; Parser
@@ -117,40 +90,56 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
 ; Rules
 (define (rule-character ch)
   (define (match str)
-    (cond ((null? str) (cons #f 0))
-          ((equal? (car str) ch) (cons #t 1))
-          (else (cons #f 0))))
+    (cond ((null? str) (list (cons #f 0)))
+          ((equal? (car str) ch) (list (cons #t 1)))
+          (else (list (cons #f 0)))))
   (define (dispatch op)
-    (cond ((eq? op 'match) match)
+    (cond ((eq? op 'match) (lambda (str)
+            (let ((result (match str)))
+              ;(newline)
+              ;(display "rule-character: ")
+              ;(display ch)
+              ;(newline)
+              ;(display str)
+              ;(newline)
+              ;(display result)
+              ;(newline)
+              result)))
           ((eq? op 'as-list) (list "ch:" ch))
           (else (error "Unsupported op for rule-character:" op))))
   dispatch)
 
 (define (rule-sequence . rules)
   (define (loop remaining-rules remaining-str offset)
-    (cond ((null? remaining-rules) (cons #t offset))
-          ((null? remaining-str)
-            ((lambda ()
-               (newline)
-               (display "rule-sequence: ")
-               (display (map (lambda (r) (r 'as-list)) remaining-rules))
-               (newline)
-               (display remaining-str)
-               (newline)
-               (cons #f offset))))
+    (cond ((null? remaining-rules) (list (cons #t offset)))
+          ((null? remaining-str) (list (cons #f offset)))
           (else (let ((next-rule
                         (car remaining-rules)))
-                  (let ((next-rule-match ((next-rule 'match) remaining-str)))
-                    (let ((next-rule-matches (car next-rule-match))
-                          (offset-increment (cdr next-rule-match)))
-                      (if next-rule-matches
-                        (loop
-                          (cdr remaining-rules)
-                          (drop remaining-str offset-increment)
-                          (+ offset offset-increment))
-                        (cons #f offset))))))))
+                  (let ((next-rule-matches ((next-rule 'match) remaining-str)))
+                    (apply
+                      append
+                      (map
+                        (lambda (next-rule-match)
+                          (let ((offset-increment (cdr next-rule-match)))
+                            (loop
+                              (cdr remaining-rules)
+                              (drop remaining-str offset-increment)
+                              (+ offset offset-increment))))
+                        (filter
+                          (lambda (next-rule-match)
+                            (car next-rule-match))
+                          next-rule-matches))))))))
   (define (match str)
-    (loop rules str 0))
+    (let ((result (loop rules str 0)))
+      ;(newline)
+      ;(display "rule-sequence: ")
+      ;(display (map (lambda (r) (r 'as-list)) rules))
+      ;(newline)
+      ;(display str)
+      ;(newline)
+      ;(display result)
+      ;(newline)
+      result))
   (define (dispatch op)
     (cond ((eq? op 'match) match)
           ((eq? op 'as-list) (list "seq:"
@@ -163,20 +152,32 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
 
 (define (rule-one-of . rules)
   (define (loop remaining-rules str)
-    (cond ((null? remaining-rules) (cons #f 0))
-          ((null? str) (cons #f 0))
+    (cond ((null? remaining-rules) (list (cons #f 0)))
+          ((null? str) (list (cons #f 0)))
           (else (let ((next-rule
                         (car remaining-rules)))
-                  (let ((next-rule-match ((next-rule 'match) str)))
-                    (let ((next-rule-matches (car next-rule-match))
-                          (offset (cdr next-rule-match)))
-                      (if next-rule-matches
-                        (cons #t offset)
+                  (let ((next-rule-matches ((next-rule 'match) str)))
+                    (let ((positive-next-rule-matches
+                            (filter
+                              (lambda (next-rule-match)
+                                (car next-rule-match))
+                              next-rule-matches)))
+                      (append
+                        positive-next-rule-matches
                         (loop
                           (cdr remaining-rules)
                           str))))))))
   (define (match str)
-    (loop rules str))
+    (let ((result (loop rules str)))
+      ;(newline)
+      ;(display "rule-one-of: ")
+      ;(display (map (lambda (r) (r 'as-list)) rules))
+      ;(newline)
+      ;(display str)
+      ;(newline)
+      ;(display result)
+      ;(newline)
+      result))
   (define (dispatch op)
    (cond ((eq? op 'match) match)
          ((eq? op 'as-list) (list "one-of:"
@@ -201,15 +202,21 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
 
 (define (matches-rule? rule)
   (lambda (str)
-    (let ((rule-match-and-offset
-            ((rule 'match) str)))
-      (let ((rule-match (car rule-match-and-offset))
-            (rule-match-offset (cdr rule-match-and-offset)))
-        (and
-          rule-match
-          (=
-            rule-match-offset
-            (length str)))))))
+    (let ((rule-match-and-offset-pairs
+          ((rule 'match) str)))
+      (>
+        (length
+          (filter
+            (lambda (rule-match-and-offset)
+              (let ((rule-match (car rule-match-and-offset))
+                    (rule-match-offset (cdr rule-match-and-offset)))
+                (and
+                  rule-match
+                  (=
+                    rule-match-offset
+                    (length str)))))
+            rule-match-and-offset-pairs))
+        0))))
 
 ; Display the results
 (define parsed
@@ -241,15 +248,15 @@ aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
           (string->list m)))
       messages)))
 
-(newline)
-(display
-  (rule-zero (string->list "aaaabbaaaabbaaa")))
-(newline)
+;(newline)
+;(display
+;  (rule-zero (string->list "aaaabbaaaabbaaa")))
+;(newline)
 
-(newline)
-(display
-  (rule-zero (string->list "aaaaabbaabaaaaababaa")))
-(newline)
+;(newline)
+;(display
+;  (rule-zero (string->list "abbb")))
+;(newline)
 
 (newline)
 (map
