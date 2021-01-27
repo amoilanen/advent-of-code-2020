@@ -138,7 +138,7 @@ Tile 3079:
     (list->string tile-id)
     tile-rows)))
 
-; Layout
+; Solution
 (define (make-tile id rows-list)
   (define rows
     (list->vector
@@ -180,6 +180,21 @@ Tile 3079:
           (else (error "Unsupported tile op:" op))))
   dispatch)
 
+(define (shape-of side)
+  (define (loop remaining-symbols acc scale)
+    (if (null? remaining-symbols) acc
+      (let ((next-digit
+              (if (equal? '#\# (car remaining-symbols)) 1 0)))
+        (loop
+          (cdr remaining-symbols)
+          (+
+            acc
+            (* next-digit scale))
+          (* 2 scale)))))
+  (loop (reverse side) 0 1))
+
+; Display results
+
 (newline)
 (map
   (lambda (tile)
@@ -188,3 +203,12 @@ Tile 3079:
     (string->list
       input-data)))
 (newline)
+
+(display
+  (map
+    (lambda (input)
+      (shape-of (string->list input)))
+    (list
+      ".##"
+      "####"
+      ".#..")))
