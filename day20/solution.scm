@@ -170,9 +170,44 @@ Tile 3079:
         (display row)
         (newline))
       rows-list))
+  (define (side-shapes)
+    (let ((left-side
+            (vector->list
+              (vector-map
+                (lambda (row)
+                  (vector-ref row 0))
+                rows)))
+          (right-side
+            (vector->list
+              (vector-map
+                (lambda (row)
+                  (vector-ref row (- column-number 1)))
+                 rows)))
+          (top-side
+            (vector->list
+              (vector-ref rows 0)))
+          (bottom-side
+            (vector->list
+              (vector-ref rows (- row-number 1)))))
+        (let ((left-shape (shape-of left-side))
+              (left-shape-reversed (shape-of (reverse left-side)))
+              (right-shape (shape-of right-side))
+              (right-shape-reversed (shape-of (reverse right-side)))
+              (top-shape (shape-of top-side))
+              (top-shape-reversed (shape-of (reverse top-side)))
+              (bottom-shape (shape-of bottom-side))
+              (bottom-shape-reversed (shape-of (reverse bottom-side))))
+          (list
+            (list
+              (list left-shape right-shape top-shape bottom-shape)
+              (list left-shape-reversed right-shape-reversed bottom-shape top-shape)
+              (list right-shape left-shape top-shape-reversed bottom-shape-reversed)
+              (list right-shape-reversed left-shape-reversed bottom-shape-reversed top-shape-reversed)))
+        )))
   (define (dispatch op)
     (cond ((eq? op 'id) id)
           ((eq? op 'rows) rows-list)
+          ((eq? op 'side-shapes) (side-shapes))
           ((eq? op 'element-at) element-at)
           ((eq? op 'column-number) column-number)
           ((eq? op 'row-number) row-number)
@@ -202,6 +237,21 @@ Tile 3079:
   (parse-input
     (string->list
       input-data)))
+(newline)
+
+(define sample-tile
+  (make-tile "sample"
+    (list
+      (string->list "#.#")
+      (string->list "#.#")
+      (string->list ".##"))))
+
+(sample-tile 'show-tile)
+(map
+  (lambda (side)
+    (newline)
+    (display side))
+ (sample-tile 'side-shapes))
 (newline)
 
 (display
