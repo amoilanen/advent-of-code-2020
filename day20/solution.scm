@@ -198,11 +198,10 @@ Tile 3079:
               (bottom-shape (shape-of bottom-side))
               (bottom-shape-reversed (shape-of (reverse bottom-side))))
           (list
-            (list
-              (list left-shape right-shape top-shape bottom-shape)
-              (list left-shape-reversed right-shape-reversed bottom-shape top-shape)
-              (list right-shape left-shape top-shape-reversed bottom-shape-reversed)
-              (list right-shape-reversed left-shape-reversed bottom-shape-reversed top-shape-reversed)))
+            (list left-shape right-shape top-shape bottom-shape)
+            (list left-shape-reversed right-shape-reversed bottom-shape top-shape)
+            (list right-shape left-shape top-shape-reversed bottom-shape-reversed)
+            (list right-shape-reversed left-shape-reversed bottom-shape-reversed top-shape-reversed))
         )))
   (define (dispatch op)
     (cond ((eq? op 'id) id)
@@ -228,15 +227,28 @@ Tile 3079:
           (* 2 scale)))))
   (loop (reverse side) 0 1))
 
+(define (all-shapes tiles)
+  (apply
+    append
+      (map
+        (lambda (tile)
+          (apply
+            append
+            (tile 'side-shapes)))
+        tiles)))
+
 ; Display results
+
+(define tiles
+  (parse-input
+    (string->list
+      input-data)))
 
 (newline)
 (map
   (lambda (tile)
     (tile 'show-tile))
-  (parse-input
-    (string->list
-      input-data)))
+  tiles)
 (newline)
 
 (define sample-tile
@@ -252,6 +264,9 @@ Tile 3079:
     (newline)
     (display side))
  (sample-tile 'side-shapes))
+(newline)
+
+(display (all-shapes tiles))
 (newline)
 
 (display
