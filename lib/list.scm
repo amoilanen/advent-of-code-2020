@@ -1,3 +1,5 @@
+(load "./lib/alist.scm")
+
 (define (contains? el list)
   (not (eq? false (member el list))))
 
@@ -131,3 +133,21 @@
       built-list
       (loop (- remaining-len 1) (cons value built-list))))
   (loop (- len (length l)) l))
+
+(define (group-by l f)
+  (alist->list
+    (fold-left
+      (lambda (acc next)
+        (let ((next-key-value (f next)))
+          (let ((next-key-previous-values (assoc next-key-value acc)))
+            (cons
+              (cons
+                next-key-value
+                (append
+                  (if next-key-previous-values
+                    (cdr next-key-previous-values)
+                    '())
+                  (list next)))
+              acc))))
+      '()
+      l)))

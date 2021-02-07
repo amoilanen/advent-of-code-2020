@@ -266,14 +266,33 @@ Tile 3079:
  (sample-tile 'side-shapes))
 (newline)
 
-(display (all-shapes tiles))
+(define shape-frequencies
+  (map
+    ; side shapes for all the tile rotations and turns are ((l r t b) ( l' r' b t) (r l t' b') (r' l' b' t'))
+    ; every shape occurs _twice_, this is why we have to divide by 2
+    (lambda (shape)
+      (cons
+        (car shape)
+        (/
+          (length
+            (cdr shape))
+          2)))
+    (group-by
+      (all-shapes tiles)
+      identity)))
+
+(display shape-frequencies)
 (newline)
 
-(display
-  (map
-    (lambda (input)
-      (shape-of (string->list input)))
-    (list
-      ".##"
-      "####"
-      ".#..")))
+(newline)
+(display (shape-of (string->list "..#.#....#")))
+(newline)
+
+;(display
+;  (map
+;    (lambda (input)
+;      (shape-of (string->list input)))
+;    (list
+;      ".##"
+;      "####"
+;      ".#..")))
