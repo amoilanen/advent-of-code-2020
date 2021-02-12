@@ -227,7 +227,7 @@ Tile 3079:
           (* 2 scale)))))
   (loop (reverse side) 0 1))
 
-(define (all-shapes tiles)
+(define (all-side-shapes-of tiles)
   (apply
     append
       (map
@@ -236,6 +236,21 @@ Tile 3079:
             append
             (tile 'side-shapes)))
         tiles)))
+
+(define (side-shape-frequencies-of tiles)
+  (map
+    ; side shapes for all the tile rotations and turns are ((l r t b) ( l' r' b t) (r l t' b') (r' l' b' t'))
+    ; every shape occurs _twice_, this is why we have to divide by 2
+    (lambda (shape)
+      (cons
+        (car shape)
+        (/
+          (length
+            (cdr shape))
+          2)))
+    (group-by
+      (all-side-shapes-of tiles)
+      identity)))
 
 ; Display results
 
@@ -266,26 +281,45 @@ Tile 3079:
  (sample-tile 'side-shapes))
 (newline)
 
-(define shape-frequencies
-  (map
-    ; side shapes for all the tile rotations and turns are ((l r t b) ( l' r' b t) (r l t' b') (r' l' b' t'))
-    ; every shape occurs _twice_, this is why we have to divide by 2
-    (lambda (shape)
-      (cons
-        (car shape)
-        (/
-          (length
-            (cdr shape))
-          2)))
-    (group-by
-      (all-shapes tiles)
-      identity)))
 
-(display shape-frequencies)
+(display (side-shape-frequencies-of tiles))
 (newline)
+
+(define (tiles-with-two-external-sides tiles shape-frequencies)
+  (define (is-external-side? side-shape)
+    (= (cdr (assoc side-shape shape-frequencies)) 1))
+  (define (number-of-external-sides-in-tile-position side-shapes-in-single-position)
+    (apply
+      +
+      (map
+        (lambda (side)
+          (if (is-external-side? side) 1 0))
+        side-shapes-in-single-position)))
+  (define (has-two-external-sides? tile)
+    (let ((tile-side-shapes (tile 'side-shapes)))
+      (some?
+        (lambda (side-shapes)
+          (= (number-of-external-sides-in-tile-position side-shapes) 2))
+        tile-side-shapes)))
+  (filter
+    has-two-external-sides?
+    tiles))
 
 (newline)
 (display (shape-of (string->list "..#.#....#")))
+(newline)
+
+(define corner-tiles
+  (tiles-with-two-external-sides
+    tiles
+    (side-shape-frequencies-of tiles)))
+
+(newline)
+(map
+  (lambda (tile)
+    (display (tile 'id))
+    (newline))
+  corner-tiles)
 (newline)
 
 ;(display
