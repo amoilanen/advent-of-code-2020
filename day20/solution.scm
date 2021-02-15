@@ -252,39 +252,6 @@ Tile 3079:
       (all-side-shapes-of tiles)
       identity)))
 
-; Display results
-
-(define tiles
-  (parse-input
-    (string->list
-      input-data)))
-
-(newline)
-(map
-  (lambda (tile)
-    (tile 'show-tile))
-  tiles)
-(newline)
-
-(define sample-tile
-  (make-tile "sample"
-    (list
-      (string->list "#.#")
-      (string->list "#.#")
-      (string->list ".##"))))
-
-(sample-tile 'show-tile)
-(map
-  (lambda (side)
-    (newline)
-    (display side))
- (sample-tile 'side-shapes))
-(newline)
-
-
-(display (side-shape-frequencies-of tiles))
-(newline)
-
 (define (tiles-with-two-external-sides tiles shape-frequencies)
   (define (is-external-side? side-shape)
     (= (cdr (assoc side-shape shape-frequencies)) 1))
@@ -305,28 +272,31 @@ Tile 3079:
     has-two-external-sides?
     tiles))
 
-(newline)
-(display (shape-of (string->list "..#.#....#")))
-(newline)
-
-(define corner-tiles
+(define (corner-tiles tiles)
   (tiles-with-two-external-sides
     tiles
     (side-shape-frequencies-of tiles)))
 
-(newline)
-(map
-  (lambda (tile)
-    (display (tile 'id))
-    (newline))
-  corner-tiles)
-(newline)
+(define (answer-to-part-1 tiles)
+  (apply
+    *
+    (map
+      (lambda (tile)
+        (string->number
+          (tile 'id)))
+      (corner-tiles
+        tiles))))
 
-;(display
-;  (map
-;    (lambda (input)
-;      (shape-of (string->list input)))
-;    (list
-;      ".##"
-;      "####"
-;      ".#..")))
+; Display results
+
+(define tiles
+  (parse-input
+    (string->list
+      input-data)))
+
+(newline)
+(display "Part 1:")
+(newline)
+(display
+  (answer-to-part-1 tiles))
+(newline)
