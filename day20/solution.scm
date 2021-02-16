@@ -138,24 +138,44 @@ Tile 3079:
     (list->string tile-id)
     tile-rows)))
 
+(define (rotate-90 tile)
+  ;TODO: Implement
+  tile)
+
+(define (rotate-180 tile)
+  ;TODO: Implement
+  tile)
+
+(define (rotate-270 tile)
+  ;TODO: Implement
+  tile)
+
+(define (flip-horizontally tile)
+  ;TODO: Implement
+  tile)
+
+(define (flip-vertically tile)
+  ;TODO: Implement
+  tile)
+
 ; Solution
+(define (tile-position id side-shapes transformations)
+  (define (dispatch op)
+    (cond ((eq? op 'id) id)
+          ((eq? op 'left-side-shape) (car side-shapes))
+          ((eq? op 'top-side-shape) (cadr side-shapes))
+          ((eq? op 'right-side-shape) (caddr side-shapes))
+          ((eq? op 'bottom-side-shape) (cadddr side-shapes))
+          ((eq? op 'transformations) transformations)
+          (else (error "Unsupported tile-position op:" op))))
+  dispatch)
+
 (define (make-tile id rows-list)
   (define rows
     (list->vector
       (map
         list->vector
         rows-list)))
-  (define (are-valid-cell-coordinates row-idx column-idx)
-    (and
-      (< row-idx row-number)
-      (>= row-idx 0)
-      (< column-idx column-number)
-      (>= column-idx 0)))
-  (define (element-at row-idx column-idx)
-    (if (are-valid-cell-coordinates row-idx column-idx)
-      (let ((row (vector-ref rows row-idx)))
-        (vector-ref row column-idx))
-      #f))
   (define row-number
     (vector-length rows))
   (define column-number
@@ -170,6 +190,33 @@ Tile 3079:
         (display row)
         (newline))
       rows-list))
+  (define (tile-positions)
+    ;TODO: Return all the possible tile positions
+    (let ((l (shape-of left-side))
+         (l_ (shape-of (reverse left-side)))
+         (r (shape-of right-side))
+         (r_ (shape-of (reverse right-side)))
+         (t (shape-of top-side))
+         (t_ (shape-of (reverse top-side)))
+         (b (shape-of bottom-side))
+         (b_ (shape-of (reverse bottom-side))))
+      (list
+        (tile-position
+          id
+          (list l t r b)
+          '())
+        (tile-position
+          id
+          (list b l t r)
+          (list rotate-90))
+        (tile-position
+          id
+          (list r b l t)
+          (list rotate-180))
+        (tile-position
+          id
+          (list t r b l)
+          (list rotate-270)))))
   (define (side-shapes)
     (let ((left-side
             (vector->list
@@ -207,9 +254,6 @@ Tile 3079:
     (cond ((eq? op 'id) id)
           ((eq? op 'rows) rows-list)
           ((eq? op 'side-shapes) (side-shapes))
-          ((eq? op 'element-at) element-at)
-          ((eq? op 'column-number) column-number)
-          ((eq? op 'row-number) row-number)
           ((eq? op 'show-tile) (show-tile))
           (else (error "Unsupported tile op:" op))))
   dispatch)
@@ -252,7 +296,7 @@ Tile 3079:
       (all-side-shapes-of tiles)
       identity)))
 
-(define (tiles-with-two-external-sides tiles shape-frequencies)
+(define (tiles-with-expected-number-of-external-sides tiles external-sides-number shape-frequencies)
   (define (is-external-side? side-shape)
     (= (cdr (assoc side-shape shape-frequencies)) 1))
   (define (number-of-external-sides-in-tile-position side-shapes-in-single-position)
@@ -262,19 +306,20 @@ Tile 3079:
         (lambda (side)
           (if (is-external-side? side) 1 0))
         side-shapes-in-single-position)))
-  (define (has-two-external-sides? tile)
+  (define (with-expected-number-of-external-sides? tile)
     (let ((tile-side-shapes (tile 'side-shapes)))
       (some?
         (lambda (side-shapes)
-          (= (number-of-external-sides-in-tile-position side-shapes) 2))
+          (= (number-of-external-sides-in-tile-position side-shapes) external-sides-number))
         tile-side-shapes)))
   (filter
-    has-two-external-sides?
+    with-expected-number-of-external-sides?
     tiles))
 
 (define (corner-tiles tiles)
-  (tiles-with-two-external-sides
+  (tiles-with-expected-number-of-external-sides
     tiles
+    2
     (side-shape-frequencies-of tiles)))
 
 (define (answer-to-part-1 tiles)
@@ -299,4 +344,33 @@ Tile 3079:
 (newline)
 (display
   (answer-to-part-1 tiles))
+(newline)
+
+(define side-tiles
+  (tiles-with-expected-number-of-external-sides
+    tiles
+    1
+    (side-shape-frequencies-of tiles)))
+
+(newline)
+(map
+  (lambda (tile)
+    (display (tile 'id))
+    (newline))
+  side-tiles)
+(newline)
+
+(define image-size
+  (sqrt
+    (length tiles)))
+
+(define image-tiles
+  (make-vector
+    image-size
+    (make-vector
+      image-size
+      #f)))
+
+(newline)
+(display image-tiles)
 (newline)
