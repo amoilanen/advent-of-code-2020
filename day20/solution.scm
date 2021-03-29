@@ -139,8 +139,16 @@ Tile 3079:
     tile-rows)))
 
 (define (rotate-90 tile)
-  ;TODO: Implement
-  tile)
+  (make-tile
+    (tile 'id)
+    (map
+      (lambda (column-idx)
+        (reverse (vector->list
+          (vector-map
+            (lambda (row)
+              (vector-ref row column-idx))
+            (tile 'rows)))))
+      (range 0 (- (tile 'column-number) 1)))))
 
 (define (rotate-180 tile)
   ;TODO: Implement
@@ -302,7 +310,10 @@ Tile 3079:
         (list r_ l_ b_ t_))))
   (define (dispatch op)
     (cond ((eq? op 'id) id)
-          ((eq? op 'rows) rows-list)
+          ((eq? op 'rows-list) rows-list)
+          ((eq? op 'rows) rows)
+          ((eq? op 'column-number) column-number)
+          ((eq? op 'row-number) row-number)
           ((eq? op 'side-shapes) (side-shapes))
           ((eq? op 'show-tile) (show-tile))
           (else (error "Unsupported tile op:" op))))
@@ -423,4 +434,16 @@ Tile 3079:
 
 (newline)
 (display image-tiles)
+(newline)
+
+(define test-tile
+  (make-tile
+    1
+    (list
+      (list 1 1 0)
+      (list 0 0 0)
+      (list 0 0 1))))
+
+(newline)
+((rotate-90 test-tile) 'show-tile)
 (newline)
