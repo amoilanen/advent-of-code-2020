@@ -181,6 +181,24 @@ Tile 3079:
   (define column-number
     (if (null? rows) 0
        (vector-length (vector-ref rows 0))))
+  (define left-side
+    (vector->list
+      (vector-map
+        (lambda (row)
+          (vector-ref row 0))
+        rows)))
+  (define right-side
+    (vector->list
+      (vector-map
+        (lambda (row)
+          (vector-ref row (- column-number 1)))
+         rows)))
+  (define top-side
+    (vector->list
+      (vector-ref rows 0)))
+  (define bottom-side
+    (vector->list
+      (vector-ref rows (- row-number 1))))
   (define (show-tile)
     (display "tile-id=")
     (display id)
@@ -191,7 +209,6 @@ Tile 3079:
         (newline))
       rows-list))
   (define (tile-positions)
-    ;TODO: Return all the possible tile positions
     (let ((l (shape-of left-side))
          (l_ (shape-of (reverse left-side)))
          (r (shape-of right-side))
@@ -201,6 +218,7 @@ Tile 3079:
          (b (shape-of bottom-side))
          (b_ (shape-of (reverse bottom-side))))
       (list
+        ; Not flipped
         (tile-position
           id
           (list l t r b)
@@ -216,40 +234,72 @@ Tile 3079:
         (tile-position
           id
           (list t r b l)
-          (list rotate-270)))))
+          (list rotate-270))
+        ; Flipped horizontally
+        (tile-position
+          id
+          (list r t_ l b_)
+          (list flip-horizontally))
+        (tile-position
+          id
+          (list t l_ b r_)
+          (list rotate-90 flip-horizontally))
+        (tile-position
+          id
+          (list l b_ r t_)
+          (list rotate-180 flip-horizontally))
+        (tile-position
+          id
+          (list b r_ t l_)
+          (list rotate-270 flip-horizontally))
+        ; Flipped vertically
+        (tile-position
+          id
+          (list l_ b r_ t)
+          (list flip-vertically))
+        (tile-position
+          id
+          (list b_ r t_ l)
+          (list rotate-90 flip-vertically))
+        (tile-position
+          id
+          (list r_ t l_ b)
+          (list rotate-180 flip-vertically))
+        (tile-position
+          id
+          (list t_ l b_ r)
+          (list rotate-270 flip-vertically))
+        ; Flipped horizontally and then vertically
+        (tile-position
+          id
+          (list r_ b_ l_ t_)
+          (list flip-horizontally flip-vertically))
+        (tile-position
+          id
+          (list t_ r_ b_ l_)
+          (list rotate-90 flip-horizontally flip-vertically))
+        (tile-position
+          id
+          (list l_ t_ r_ b_)
+          (list rotate-180 flip-horizontally flip-vertically))
+        (tile-position
+          id
+          (list b_ l_ t_ r_)
+          (list rotate-270 flip-horizontally flip-vertically)))))
   (define (side-shapes)
-    (let ((left-side
-            (vector->list
-              (vector-map
-                (lambda (row)
-                  (vector-ref row 0))
-                rows)))
-          (right-side
-            (vector->list
-              (vector-map
-                (lambda (row)
-                  (vector-ref row (- column-number 1)))
-                 rows)))
-          (top-side
-            (vector->list
-              (vector-ref rows 0)))
-          (bottom-side
-            (vector->list
-              (vector-ref rows (- row-number 1)))))
-        (let ((left-shape (shape-of left-side))
-              (left-shape-reversed (shape-of (reverse left-side)))
-              (right-shape (shape-of right-side))
-              (right-shape-reversed (shape-of (reverse right-side)))
-              (top-shape (shape-of top-side))
-              (top-shape-reversed (shape-of (reverse top-side)))
-              (bottom-shape (shape-of bottom-side))
-              (bottom-shape-reversed (shape-of (reverse bottom-side))))
-          (list
-            (list left-shape right-shape top-shape bottom-shape)
-            (list left-shape-reversed right-shape-reversed bottom-shape top-shape)
-            (list right-shape left-shape top-shape-reversed bottom-shape-reversed)
-            (list right-shape-reversed left-shape-reversed bottom-shape-reversed top-shape-reversed))
-        )))
+    (let ((l (shape-of left-side))
+          (l_ (shape-of (reverse left-side)))
+          (r (shape-of right-side))
+          (r_ (shape-of (reverse right-side)))
+          (t (shape-of top-side))
+          (t_ (shape-of (reverse top-side)))
+          (b (shape-of bottom-side))
+          (b_ (shape-of (reverse bottom-side))))
+      (list
+        (list l r t b)
+        (list l_ r_ b t)
+        (list r l t_ b_)
+        (list r_ l_ b_ t_))))
   (define (dispatch op)
     (cond ((eq? op 'id) id)
           ((eq? op 'rows) rows-list)
