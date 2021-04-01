@@ -150,21 +150,43 @@ Tile 3079:
             (tile 'rows)))))
       (range 0 (- (tile 'column-number) 1)))))
 
+; Optimization: it is possible to implement rotate-180 as 2 rotations of 90 degrees
 (define (rotate-180 tile)
-  ;TODO: Implement
-  tile)
+  (make-tile
+    (tile 'id)
+    (reverse
+      (map
+        (lambda (row)
+          (reverse row))
+        (tile 'rows-list)))))
 
+; Optimization: it is possible to implement rotate-270 as 3 rotations of 90 degress
 (define (rotate-270 tile)
-  ;TODO: Implement
-  tile)
+  (make-tile
+    (tile 'id)
+    (reverse
+      (map
+        (lambda (column-idx)
+          (vector->list
+            (vector-map
+              (lambda (row)
+                (vector-ref row column-idx))
+              (tile 'rows))))
+        (range 0 (- (tile 'column-number) 1))))))
 
 (define (flip-horizontally tile)
-  ;TODO: Implement
-  tile)
+  (make-tile
+    (tile 'id)
+    (map
+      (lambda (row)
+        (reverse row))
+      (tile 'rows-list))))
 
 (define (flip-vertically tile)
-  ;TODO: Implement
-  tile)
+  (make-tile
+    (tile 'id)
+    (reverse
+      (tile 'rows-list))))
 
 ; Solution
 (define (tile-position id side-shapes transformations)
@@ -440,10 +462,59 @@ Tile 3079:
   (make-tile
     1
     (list
-      (list 1 1 0)
-      (list 0 0 0)
-      (list 0 0 1))))
+      (list 1 2 3)
+      (list 4 5 6)
+      (list 7 8 9))))
 
 (newline)
 ((rotate-90 test-tile) 'show-tile)
+(newline)
+
+(define test-tile
+  (make-tile
+    2
+    (list
+      (list 1 2 3)
+      (list 4 5 6)
+      (list 7 8 9))))
+
+(newline)
+((rotate-180 test-tile) 'show-tile)
+(newline)
+
+(define test-tile
+  (make-tile
+    3
+    (list
+      (list 1 2 3)
+      (list 4 5 6)
+      (list 7 8 9))))
+
+(newline)
+((rotate-270 test-tile) 'show-tile)
+(newline)
+
+
+(define test-tile
+  (make-tile
+    4
+    (list
+      (list 1 2 3)
+      (list 4 5 6)
+      (list 7 8 9))))
+
+(newline)
+((flip-horizontally test-tile) 'show-tile)
+(newline)
+
+(define test-tile
+  (make-tile
+    5
+    (list
+      (list 1 2 3)
+      (list 4 5 6)
+      (list 7 8 9))))
+
+(newline)
+((flip-vertically test-tile) 'show-tile)
 (newline)
